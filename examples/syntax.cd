@@ -1,0 +1,47 @@
+A polyblock is a series of cell declared as part of a text file. Cells can
+have a name (must be unique), a type (the language/format they're written in),
+a value and dependencies.
+
+Cells are separated in the document by lines starting with a double dash like
+so: `--`. Each time you see a double dash, a new cell will begin.
+
+Empty lines at the end of cell will be swallowed. This makes it easier to
+format your cells.
+
+A line starting with `--` and then followed by a `#` (with optional spaces inbetween)
+is going to be interpreted as a comment, like this so: `-- # This is a comment`.
+-- # This is a comment
+--
+# Cell basics
+--
+## Cell name
+--
+Each cell has an optional name, which can be indicated after
+the `-- `. The name of a cell makes it accessible as a value.
+
+--
+# Cell type
+--
+Cells can have a `type`, which is prefixed by `:`. For instance,
+a cell declared as `snippet:html` will have the name `snippet`, and
+the type `html`.
+
+-- snippet_a:html
+<p>Now this is going to be a cell which value is in <em>HTML</em></p>
+
+-- snippet_b:js
+"Snippets can also contain JavaScript code. This one was evaluated at" + (new Date())
+
+--
+# Cell dependencies
+--
+Cells are all about declaring values and then referencing them, essentially
+creating a *dataflow* graph inbetween them. Dependencies can be explicitly
+declared by suffixing the cell declaration like so `< A B C`.
+-- a:js
+1.0
+-- b:js
+200
+-- :js < a b
+a + b
+-- # EOF
