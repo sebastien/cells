@@ -1,0 +1,4 @@
+- Inverted representation, ie. embedded in a language
+- Parsource integration for dependencies identification
+- FMT integration
+- Lint integration

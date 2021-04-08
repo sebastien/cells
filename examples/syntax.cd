@@ -1,4 +1,4 @@
-A polyblock is a series of cell declared as part of a text file. Cells can
+A cells document is a series of _cell_ declared as part of a text file. Cells can
 have a name (must be unique), a type (the language/format they're written in),
 a value and dependencies.
 
@@ -42,6 +42,6 @@ declared by suffixing the cell declaration like so `< A B C`.
 1.0
 -- b:js
 200
--- :js < a b
+-- c:js < a b
 a + b
 -- # EOF
