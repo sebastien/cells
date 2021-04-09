@@ -1,12 +1,5 @@
 from typing import Iterable, Any, Optional, List, Dict
-import hashlib
-
-
-def sig(content: List[str]) -> bytes:
-    h = hashlib.sha3_256()
-    for _ in content:
-        h.update(bytes(_, "utf8"))
-    return h.digest()
+from .utils import sig
 
 
 class Cell:

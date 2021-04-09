@@ -29,6 +29,17 @@ class DAG(Generic[T]):
             self.nodes[node] = value
         return self
 
+    def clearInputs(self, node: str):
+        for n in self.inputs.get(node, ()):
+            self.outputs[n].remove(node)
+        self.inputs[node] = []
+        return node
+
+    def setInputs(self, node: str, inputs: List[str]):
+        self.clearInputs(node)
+        self.addInputs(node, inputs)
+        return self
+
     def addInput(self, node: str, inputNode: str):
         """Add the given node as input to this node"""
         self.setNode(node)
