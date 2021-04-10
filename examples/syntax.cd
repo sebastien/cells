@@ -1,4 +1,4 @@
-A cells document is a series of _cell_ declared as part of a text file. Cells can
+A cells document is a series of _cells_ declared as part of a text file. Cells can
 have a name (must be unique), a type (the language/format they're written in),
 a value and dependencies.
 

@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
+import time
 
 
 @dataclass
@@ -47,7 +48,50 @@ class IKernel:
         raise NotImplemented
 
 
+class BaseKernel(IKernel):
+
+    def __init__(self):
+        super().__init__()
+        self.sessions: Dict[str, Session] = {}
+
+    def getSession(self, session: str) -> Session:
+        """Returns the session with the given name, creating it if necessary."""
+        return self.sessions[session] if session in self.sessions else self.sessions.setdefault(
+            session, Session(time.time(), {}))
+
+    def getSlot(self, session: str, slot: str) -> Slot:
+        """Returns the slot with the given name in the given session, creating it if necessary."""
+        s = self.getSession(session)
+        return s.slots[slot] if slot in s.slots else s.slots.setdefault(slot, Slot())
+
+    def set(self, session: str, slot: str, inputs: List[str], source: str, type: str = "python") -> Slot:
+        # We update the slot
+        s = self.getSlot(session, slot)
+        # TODO: We could check if the inputs have changes
+        s.inputs = [_ for _ in inputs]
+        s.definition = None
+        s.source = None
+        s.isDirty = True
+        return s
+
+    def get(self, session: str, slot: str):
+        s = self.getSlot(session, slot)
+        if s.isDirty:
+            # NOTE: This will trigger a recursive loop if it's not a DAG
+            s.value = self.evalSlot(session, slot)
+            s.isDirty = False
+        return s.value
+
+    def invalidate(self, session: str, slots: List[str]) -> bool:
+        for slot in slots:
+            self.getSlot(session, slot).isDirty = True
+        return True
+
+    def evalSlot(self, session: str, stot: str):
+        raise NotImplemented
+
 # NOTE: We should do a stack Kernel | (HTTP|JSONRPC) | (Pipe|Socket)
+
 
 class JSONRPCAdapter:
 
