@@ -4,7 +4,7 @@ import re
 
 RE_COMMENT = re.compile(r"\s*#[ ]?(?P<value>.*)$")
 RE_DEFINITION = re.compile(
-    r"\s*(?P<name>[@\w_][\w_-]*)?(:(?P<type>\w+))?(\s*=(?P<value>.+))?\s*(\<\s*(?P<deps>[\w_]+(\s+[\w_]+)*))?$")
+    r"\s*(?P<name>[@\w_][\w_-]*)?(:(?P<type>\w+))?(\s*=(?P<content>.+))?\s*(\<\s*(?P<deps>[\w_]+(\s+[\w_]+)*))?$")
 
 
 def idem(_): return _
@@ -52,7 +52,7 @@ class Parser:
         if match := RE_COMMENT.match(line):
             return ParseEvent(T_COMMENT, match.group("value"))
         elif match := RE_DEFINITION.match(line):
-            return ParseEvent(T_DECLARATION, dict((k, v) for k, v in ((_, self.PROCESSOR.get(_, idem)(match.group(_))) for _ in ("name", "type", "value", "deps")) if v))
+            return ParseEvent(T_DECLARATION, dict((k, v) for k, v in ((_, self.PROCESSOR.get(_, idem)(match.group(_))) for _ in ("name", "type", "content", "deps")) if v))
         else:
             raise SyntaxError(f"Could not parse: {line}")
 

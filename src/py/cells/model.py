@@ -9,13 +9,13 @@ class Cell:
     """
     IDS: int = 0
 
-    def __init__(self, name: Optional[str] = None, type: Optional[str] = None, deps: Optional[List[str]] = None):
+    def __init__(self, name: Optional[str] = None, type: Optional[str] = None, deps: Optional[List[str]] = None, content: str = ""):
         self.id = str(Cell.IDS)
         Cell.IDS += 1
         self.name: Optional[str] = name
         self.type = type
         self.inputs: List[str] = [_ for _ in deps or ()]
-        self._content: List[str] = []
+        self._content: List[str] = content.split("\n")
         self.value: Any = None
 
     @property
