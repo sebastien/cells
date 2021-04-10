@@ -5,6 +5,7 @@ import time
 
 @dataclass
 class Slot:
+    type: Optional[str] = None
     definition: Optional[Any] = None
     inputs: List[str] = field(default_factory=list)
     source: Optional[str] = None
@@ -59,6 +60,9 @@ class BaseKernel(IKernel):
         return self.sessions[session] if session in self.sessions else self.sessions.setdefault(
             session, Session(time.time(), {}))
 
+    def hasSlot(self, session: str, slot: str) -> bool:
+        return slot in self.sessions[session].slots if session in self.sessions else False
+
     def getSlot(self, session: str, slot: str) -> Slot:
         """Returns the slot with the given name in the given session, creating it if necessary."""
         s = self.getSession(session)
@@ -68,13 +72,16 @@ class BaseKernel(IKernel):
         # We update the slot
         s = self.getSlot(session, slot)
         # TODO: We could check if the inputs have changes
+        s.type = type
         s.inputs = [_ for _ in inputs]
-        s.definition = None
-        s.source = None
+        s.source = source
         s.isDirty = True
+        self.defineSlot(session, slot)
         return s
 
     def get(self, session: str, slot: str):
+        if not self.hasSlot(session, slot):
+            raise ValueError(f"Undefined slot: '{session}.{slot}'")
         s = self.getSlot(session, slot)
         if s.isDirty:
             # NOTE: This will trigger a recursive loop if it's not a DAG
@@ -87,7 +94,10 @@ class BaseKernel(IKernel):
             self.getSlot(session, slot).isDirty = True
         return True
 
-    def evalSlot(self, session: str, stot: str):
+    def defineSlot(self, session: str, slot: str):
+        raise NotImplemented
+
+    def evalSlot(self, session: str, slot: str):
         raise NotImplemented
 
 # NOTE: We should do a stack Kernel | (HTTP|JSONRPC) | (Pipe|Socket)

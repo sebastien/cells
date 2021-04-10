@@ -26,15 +26,16 @@ def untab(line: str) -> str:
 # TODO: The slot invalidation should really be moved to the abstract kernel.
 class PythonKernel(BaseKernel):
 
-    def set(self, session: str, slot: str, inputs: List[str], source: str, type: str = "python"):
-        s = super().set(session, slot, inputs, source, type)
-        assert type == "python", f"Type not supported: {type}"
+    def defineSlot(self, session: str, slot: str):
+        s = self.getSlot(session, slot)
+        assert s.type == "python", f"Type not supported: {type}"
         # TODO: We should make sure we can retab the input, as otherwise Python will complain about
         # mixed tabs and spaces
-        slot_lines = [untab(f"\t{line}") for line in source.split("\n")]
+        slot_lines = [untab(f"\t{line}")
+                      for line in (s.source or "").split("\n")]
         ref = f"S{sig([session])}_{slot}"
         slot_lines.insert(
-            0, f"def {ref}({', '.join(inputs)}):")
+            0, f"def {ref}({', '.join(s.inputs)}):")
         while not slot_lines[1].strip():
             slot_lines.pop()
         # NOTE: This means that the code must end with an expression
