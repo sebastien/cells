@@ -65,9 +65,6 @@ class PythonKernel(IKernel):
         # TODO: We could check if the inputs have changes
         s.inputs = [_ for _ in inputs]
         print(f"set: {session}.{slot}= {slot_code}")
-        for n in self.session(session).dag.setInputs(slot, s.inputs).descendants(slot):
-            print(f"    invalidate {n}")
-            self.slot(session, n).isDirty = True
         s.definition = slot_def
         s.source = slot_code
         s.isDirty = True
@@ -84,5 +81,10 @@ class PythonKernel(IKernel):
         else:
             print(f"get: {session}.{slot}={s.value}[cached]")
         return s.value
+
+    def invalidate(self, session: str, slots: List[str]) -> bool:
+        for slot in slots:
+            self.slot(session, slot).isDirty = True
+        return True
 
 # EOF

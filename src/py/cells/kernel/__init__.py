@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
-from ..dag import DAG
 
 
 @dataclass
@@ -16,9 +15,11 @@ class Slot:
 class Session:
     timestamp: float
     slots: Dict[str, Slot] = field(default_factory=dict)
-    dag: DAG = field(default_factory=DAG)
 
 
+# NOTE: Design decision: the Kernel is "dump" and does not need to take care of the DAG. The
+# client will implement that logic and direct what needs to be changed. This helps simplify the
+# development of kernels and centralize the hard parts in the client.
 class IKernel:
 
     def set(self, session: str, slot: str, inputs: List[str], source: str, type: str):
@@ -27,6 +28,10 @@ class IKernel:
 
     def get(self, session: str, slot: str):
         """Returns the value of the given slot."""
+        raise NotImplemented
+
+    def invalidate(self, session: str, slots: List[str]):
+        """Invalidates the given slots, indicating that their value is out of date."""
         raise NotImplemented
 
     def getHTML(self, session: str, slot: str) -> str:
