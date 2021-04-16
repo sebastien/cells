@@ -1,7 +1,6 @@
--- @title=Hello, JS!
+-- --title=Hello, Cells!
 --
-A polyblock file is a like a polyglot notebook where
-you can write interactive documents containing text and other progrmaming language.
---
-In this example, we're going to use JavaScript
+A `.cd` file is document containing __cells__ seperated by `--` lines. Each
+cell contains a piece of source code that can be evaluated (turned into a value)
+and rendered to HTML.
 --

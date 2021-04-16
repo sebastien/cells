@@ -1,3 +1,5 @@
+-- @title=Cells Syntax
+--
 A cells document is a series of _cells_ declared as part of a text file. Cells can
 have a name (must be unique), a type (the language/format they're written in),
 a value and dependencies.
@@ -44,4 +46,17 @@ declared by suffixing the cell declaration like so `< A B C`.
 200
 -- c:js < a b
 a + b
+--
+# Escape
+--
+In case you want to have lines that start with `--`, the best thing is simply
+to indent your content and mark it as `[escaped]`:
+-- [escaped]
+	```
+	-- :bash
+	# This won't be interpreted as a cell
+	cell --version
+	```
+--
+
 -- # EOF
