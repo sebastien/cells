@@ -12,6 +12,12 @@ class DAG(Generic[T]):
         self.outputs: Dict[str, List[str]] = {}
         self.inputs: Dict[str, List[str]] = {}
 
+    def reset(self):
+        self.nodes = {}
+        self.outputs = {}
+        self.inputs = {}
+        return self
+
     def toPrimitive(self):
         return {
             "nodes": self.nodes,

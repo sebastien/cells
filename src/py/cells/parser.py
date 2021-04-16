@@ -3,11 +3,23 @@ from .model import Cell, Document
 import re
 
 RE_COMMENT = re.compile(r"\s*#[ ]?(?P<value>.*)$")
-RE_DEFINITION = re.compile(
-    r"\s*(?P<name>[@\w_][\w_-]*)?(:(?P<type>\w+))?(\s*=(?P<content>.+))?\s*(\<\s*(?P<deps>[\w_]+(\s+[\w_]+)*))?$")
+NAME = r'"[^"]+"|[@\w_][\w_-]*'
+RE_DEFINITION = re.compile("".join([
+    r"\s*(?P<name>", NAME, r")?",
+    r"(:(?P<type>\w+))?",
+    r"(\s*=(?P<content>.+))?",
+    r"\s*(\<\s*(?P<inputs>", NAME, r"(\s+", NAME, r")*))?$"
+]))
 
 
-def idem(_): return _
+def idem(_):
+    """Returns the value as-is"""
+    return _
+
+
+def unquote(text: str, quotes='"') -> str:
+    """Unquotes the string"""
+    return text[1:-1] if text and text[0] == text[-1] and text[0] in quotes else text
 
 
 T_CONTENT = '='
@@ -29,7 +41,8 @@ class Parser:
     like SAX and DOM for XML."""
 
     PROCESSOR = {
-        "deps": lambda v: [_.strip() for _ in v.split()] if v else None
+        "inputs": lambda v: [unquote(_.strip()) for _ in v.split()] if v else None,
+        "name": lambda _: unquote(_.strip()) if _ else None,
     }
 
     def __init__(self):
@@ -52,7 +65,7 @@ class Parser:
         if match := RE_COMMENT.match(line):
             return ParseEvent(T_COMMENT, match.group("value"))
         elif match := RE_DEFINITION.match(line):
-            return ParseEvent(T_DECLARATION, dict((k, v) for k, v in ((_, self.PROCESSOR.get(_, idem)(match.group(_))) for _ in ("name", "type", "content", "deps")) if v))
+            return ParseEvent(T_DECLARATION, dict((k, v) for k, v in ((_, self.PROCESSOR.get(_, idem)(match.group(_))) for _ in ("name", "type", "content", "inputs")) if v))
         else:
             raise SyntaxError(f"Could not parse: {line}")
 
@@ -74,7 +87,7 @@ class Parser:
         return self
 
     def end(self):
-        return self.document
+        return self.document.prepare()
 
 
 # EOF

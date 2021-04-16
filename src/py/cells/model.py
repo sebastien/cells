@@ -1,5 +1,6 @@
 from typing import Iterable, Any, Optional, List, Dict
-from .utils import sig
+from .utils import sig, equal_lines
+from .dag import DAG
 
 
 class Cell:
@@ -9,25 +10,29 @@ class Cell:
     """
     IDS: int = 0
 
-    def __init__(self, name: Optional[str] = None, type: Optional[str] = None, deps: Optional[List[str]] = None, content: str = ""):
+    def __init__(self, name: Optional[str] = None, type: Optional[str] = None, inputs: Optional[List[str]] = None, content: str = ""):
         self.id = str(Cell.IDS)
         Cell.IDS += 1
         self.name: Optional[str] = name
         self.type = type
-        self.inputs: List[str] = [_ for _ in deps or ()]
+        self.inputs: List[str] = [_ for _ in inputs or ()]
         self._content: List[str] = content.split("\n")
-        self.value: Any = None
+
+    def equals(self, cell: 'Cell') -> bool:
+        """Tells if this cell equals the other cell. This only checks
+        type, inputs and content"""
+        return self.type == cell.type and equal_lines(self.inputs, cell.inputs) and equal_lines(self._content, content)
 
     @property
     def ref(self) -> str:
         return self.name or self.id
 
     @property
-    def inputsSignature(self) -> bytes:
+    def inputsSignature(self) -> str:
         return sig(self.inputs)
 
     @property
-    def contentSignature(self) -> bytes:
+    def contentSignature(self) -> str:
         return sig(self._content)
 
     @property
@@ -74,6 +79,14 @@ class Document:
     def __init__(self):
         self.cells: List[Cell] = []
         self._symbols: Dict[str, Cell] = {}
+        self.dag: DAG = DAG()
+
+    def prepare(self):
+        self.dag.reset()
+        for cell in self.cells:
+            self.dag.setNode(cell.ref, cell.id)
+            self.dag.addInputs(cell.ref, cell.inputs)
+        return self
 
     def add(self, cell: Cell) -> Cell:
         assert cell not in self.cells, f"Cell added twice in {self}: {cell}"
