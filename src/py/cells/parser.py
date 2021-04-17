@@ -4,12 +4,12 @@ from pathlib import Path
 import re
 
 RE_COMMENT = re.compile(r"\s*#[ ]?(?P<value>.*)$")
-NAME = r'"[^"]+"|[@\w_][\w_-]*'
+NAME = r'("[^"]+"|[@\w_][\w_-]*)'
 RE_DEFINITION = re.compile("".join([
     r"\s*(?P<name>", NAME, r")?",
     r"(:(?P<type>\w+))?",
     r"(\s*=(?P<content>.+))?",
-    r"\s*(\<\s*(?P<inputs>", NAME, r"(\s+", NAME, r")*))?$"
+    r"\s*(\<\s*(?P<inputs>", NAME, r"(\s+", NAME, r")*))?\s*$"
 ]))
 
 
@@ -48,6 +48,18 @@ class Parser:
 
     def __init__(self):
         self.start()
+
+    def parse(self, source: Union[str, Path]):
+        if isinstance(source, Path):
+            with open(source) as f:
+                for line in f.readlines():
+                    self.feed(line)
+        elif isinstance(source, str):
+            for line in source.split("\n"):
+                self.feed(line + "\n")
+        else:
+            raise ValueError(f"Unknown source type: {source}")
+        return self
 
     def feed(self, line: str):
         self.processEvent(self.parseLine(line))
@@ -91,18 +103,10 @@ class Parser:
         return self.document.prepare()
 
 
-def parse(source: Union[Path]):
+def parse(*sources: Union[Path]):
     parser = Parser()
-    parser.start()
-    if isinstance(source, Path):
-        with open(source) as f:
-            for line in f.readlines():
-                parser.feed(line)
-    elif isinstance(source, str):
-        for line in source.split("\n"):
-            parser.feed(line + "\n")
-    else:
-        raise ValueError
+    for _ in sources:
+        parser.parse(_)
     return parser.end()
 
 # EOF

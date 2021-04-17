@@ -21,7 +21,7 @@ class Cell:
     def equals(self, cell: 'Cell') -> bool:
         """Tells if this cell equals the other cell. This only checks
         type, inputs and content"""
-        return self.type == cell.type and equal_lines(self.inputs, cell.inputs) and equal_lines(self._content, content)
+        return self.type == cell.type and equal_lines(self.inputs, cell.inputs) and equal_lines(self._content, cell._content)
 
     @property
     def ref(self) -> str:
@@ -36,7 +36,7 @@ class Cell:
         return sig(self._content)
 
     @property
-    def content(self) -> str:
+    def source(self) -> str:
         lines = self._content
         i = len(lines) - 1
         while i >= 0 and lines[i].strip() == "\n":
@@ -79,12 +79,12 @@ class Document:
     def __init__(self):
         self.cells: List[Cell] = []
         self._symbols: Dict[str, Cell] = {}
-        self.dag: DAG = DAG()
+        self.dag: DAG[Cell] = DAG()
 
     def prepare(self):
         self.dag.reset()
         for cell in self.cells:
-            self.dag.setNode(cell.ref, cell.id)
+            self.dag.setNode(cell.ref, cell)
             self.dag.addInputs(cell.ref, cell.inputs)
         return self
 
@@ -92,6 +92,13 @@ class Document:
         assert cell not in self.cells, f"Cell added twice in {self}: {cell}"
         self.cells.append(cell)
         return cell
+
+    def iterCells(self) -> Iterable[Cell]:
+        """Iterates over the cells in growing rank order"""
+        for _ in self.dag.ranks():
+            cell = self.dag.getNode(_)
+            if cell:
+                yield cell
 
     def iterSource(self) -> Iterable[str]:
         for c in self.cells:
@@ -102,3 +109,7 @@ class Document:
 
     def toPrimitive(self):
         return [_.toPrimitive() for _ in self.cells]
+
+    def __iter__(self) -> Iterable[Cell]:
+        yield from self.iterCells()
+# EOF

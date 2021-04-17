@@ -68,7 +68,7 @@ class BaseKernel(IKernel):
         s = self.getSession(session)
         return s.slots[slot] if slot in s.slots else s.slots.setdefault(slot, Slot())
 
-    def set(self, session: str, slot: str, inputs: List[str], source: str, type: str = "python") -> Slot:
+    def set(self, session: str, slot: str, inputs: List[str], source: str, type: str) -> Slot:
         # We update the slot
         s = self.getSlot(session, slot)
         # TODO: We could check if the inputs have changes
@@ -95,10 +95,10 @@ class BaseKernel(IKernel):
         return True
 
     def defineSlot(self, session: str, slot: str):
-        raise NotImplemented
+        raise NotImplementedError
 
     def evalSlot(self, session: str, slot: str):
-        raise NotImplemented
+        raise NotImplementedError
 
 # NOTE: We should do a stack Kernel | (HTTP|JSONRPC) | (Pipe|Socket)
 

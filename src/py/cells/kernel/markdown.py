@@ -21,7 +21,6 @@ class MarkdownKernel(BaseKernel):
 
     def evalSlot(self,  session: str, slot: str):
         s = self.getSlot(session, slot)
-        print("SOURCE", session, slot, s.source)
         return markdown(s.source)
 
     def renderSlot(self, session: str, slot: str):

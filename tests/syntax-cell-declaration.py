@@ -21,6 +21,8 @@ expects("a:python", {"name": "a", "type": "python"})
 expects("a < b", {"name": "a", "inputs": ["b"]})
 # Inputs: single quoted
 expects('a < "b"', {"name": "a", "inputs": ["b"]})
+# Inputs: multiple
+expects("a < b c", {"name": "a", "inputs": ["b", "c"]})
 
 #     {"name":"result","type":"shell"}
 # # Inputs

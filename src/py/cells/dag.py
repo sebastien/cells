@@ -24,6 +24,9 @@ class DAG(Generic[T]):
             "edges": self.outputs,
         }
 
+    def getNode(self, node: str) -> Optional[T]:
+        return self.nodes.get(node)
+
     def setNode(self, node: str, value: Optional[T] = None):
         """Associates a value to the node of the given name. Use this to map
         values to the DAG"""

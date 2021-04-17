@@ -1,8 +1,10 @@
-#!/usr/bin/env cells --run
+--
+A document with cells implemented in [Python](https://python.org).
 -- hello:py
 "Hello"
 -- who:py
 "World"
+--
+The cells can be combined together.
 -- :py < hello who
-f"${hello}, ${who}!"
-# EOF
+f"{hello}, {who}!"
