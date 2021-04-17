@@ -1,5 +1,6 @@
-from typing import Any, Optional, NamedTuple
+from typing import Any, Optional, NamedTuple, Union
 from .model import Cell, Document
+from pathlib import Path
 import re
 
 RE_COMMENT = re.compile(r"\s*#[ ]?(?P<value>.*)$")
@@ -89,5 +90,19 @@ class Parser:
     def end(self):
         return self.document.prepare()
 
+
+def parse(source: Union[Path]):
+    parser = Parser()
+    parser.start()
+    if isinstance(source, Path):
+        with open(source) as f:
+            for line in f.readlines():
+                parser.feed(line)
+    elif isinstance(source, str):
+        for line in source.split("\n"):
+            parser.feed(line + "\n")
+    else:
+        raise ValueError
+    return parser.end()
 
 # EOF
