@@ -1,6 +1,8 @@
--- --title=Hello, Cells!
---
-A `.cd` file is document containing __cells__ seperated by `--` lines. Each
-cell contains a piece of source code that can be evaluated (turned into a value)
-and rendered to HTML.
---
+#!/usr/bin/env cells --run
+-- hello:js
+"Hello"
+-- who:js
+"World"
+-- :js < hello who
+`${hello}, ${who}!`
+# EOF
