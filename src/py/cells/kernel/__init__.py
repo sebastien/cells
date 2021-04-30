@@ -6,7 +6,6 @@ import time
 @dataclass
 class Slot:
     type: Optional[str] = None
-    definition: Optional[Any] = None
     inputs: List[str] = field(default_factory=list)
     source: Optional[str] = None
     value: Optional[Any] = None

@@ -46,7 +46,8 @@ Running that document through `cells run` will result in:
 You can also run interactive sessions using cells, that you can
 update like so:
 
-`cells -s SESSION << EOF
+```
+cells run -s SESSION << EOF
 EOF
 ```
 
@@ -54,5 +55,5 @@ This will reuse any previously calculated cell result from the previous
 session for any cell that has not changed.
 
 ```
-cells update -s SESSION << EOF
+cells run -s SESSION << EOF
 ```
