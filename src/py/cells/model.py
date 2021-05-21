@@ -3,6 +3,18 @@ from .utils import sig, equal_lines
 from .dag import DAG
 
 
+def striplines(lines: Iterable[str]) -> Iterable[str]:
+    lines = [_ for _ in lines]
+    n = len(lines)
+    i = 0
+    j = n - 1
+    while i < n and not lines[i].strip():
+        i += 1
+    while j >= 0 and not lines[j].strip():
+        j -= 1
+    return lines[i:j+1]
+
+
 class Cell:
     """Cells wrap an evaluable representation. The evaluation of the representation
     can be done in a language-specific kernel and a corresponding context, which
@@ -43,25 +55,44 @@ class Cell:
             i -= 1
         return "".join(lines[:i+1])
 
+    @property
+    def header(self) -> str:
+        """Returns the one-liner cell header, in text format"""
+        if not (self.name or self.type or self.inputs):
+            return "--"
+        res = ["-- "]
+        if self.name:
+            res.append(self.name)
+        if self.type:
+            res.append(f":{self.type}")
+        if self.inputs:
+            res.append(f" < {' '.join(self.inputs)}")
+        return "".join(res)
+
     def add(self, line: str) -> str:
         self._content.append(line)
         return line
 
     def iterSource(self) -> Iterable[str]:
-        is_empty = not (self.name or self.type or self.inputs)
-        yield "--" if is_empty else "-- "
-        if self.name:
-            yield self.name
-        if self.type:
-            yield f":{self.type}"
-        if self.inputs:
-            yield f" < {' '.join(self.inputs)}"
-        yield "\n"
+        yield self.header
         for _ in self._content:
             yield _
 
+    def iterMarkdown(self) -> Iterable[str]:
+        if self.type in ("md", None):
+            for _ in self._content:
+                yield _
+        else:
+            yield f"\n```{self.type}{' ' + self.header.strip() if self.name or self.inputs else ''}\n"
+            for _ in (striplines(self._content)):
+                yield _
+            yield "```\n"
+
     def toSource(self) -> str:
         return "".join(_ for _ in self.iterSource())
+
+    def toMardown(self) -> str:
+        return "".join(_ for _ in self.iterMarkdown())
 
     def toPrimitive(self):
         return dict((k, v) for k, v in {
@@ -103,6 +134,10 @@ class Document:
     def iterSource(self) -> Iterable[str]:
         for c in self.cells:
             yield from c.iterSource()
+
+    def iterMarkdown(self) -> Iterable[str]:
+        for c in self.cells:
+            yield from c.iterMarkdown()
 
     def toSource(self) -> str:
         return "".join(_ for _ in self.iterSource())

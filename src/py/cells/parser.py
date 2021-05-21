@@ -1,4 +1,4 @@
-from typing import Any, Optional, NamedTuple, Union
+from typing import Any, Optional, NamedTuple, Union, Iterable
 from .model import Cell, Document
 from pathlib import Path
 import re
@@ -59,6 +59,11 @@ class Parser:
                 self.feed(line + "\n")
         else:
             raise ValueError(f"Unknown source type: {source}")
+        return self
+
+    def parseLines(self, lines: Iterable[str]):
+        for _ in lines:
+            self.feed(_)
         return self
 
     def feed(self, line: str):
