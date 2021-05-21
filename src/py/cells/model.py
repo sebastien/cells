@@ -75,6 +75,7 @@ class Cell:
 
     def iterSource(self) -> Iterable[str]:
         yield self.header
+        yield "\n"
         for _ in self._content:
             yield _
 

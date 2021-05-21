@@ -57,3 +57,9 @@ session for any cell that has not changed.
 ```
 cells run -s SESSION << EOF
 ```
+
+# References
+
+- ObservableHQ
+- Dataflow
+- Jupyter

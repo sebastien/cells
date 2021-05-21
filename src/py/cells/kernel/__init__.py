@@ -10,6 +10,7 @@ class Slot:
     source: Optional[str] = None
     value: Optional[Any] = None
     isDirty: bool = True
+    definition: Any = None
 
 
 @dataclass
@@ -67,7 +68,7 @@ class BaseKernel(IKernel):
         s = self.getSession(session)
         return s.slots[slot] if slot in s.slots else s.slots.setdefault(slot, Slot())
 
-    def set(self, session: str, slot: str, inputs: List[str], source: str, type: str) -> Slot:
+    def set(self, session: str, slot: str, inputs: List[str], source: str, type: str) -> bool:
         # We update the slot
         s = self.getSlot(session, slot)
         # TODO: We could check if the inputs have changes
@@ -76,7 +77,7 @@ class BaseKernel(IKernel):
         s.source = source
         s.isDirty = True
         self.defineSlot(session, slot)
-        return s
+        return True
 
     def get(self, session: str, slot: str):
         if not self.hasSlot(session, slot):

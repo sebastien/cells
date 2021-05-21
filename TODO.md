@@ -4,6 +4,7 @@ Features:
 - Lint integration: report errors and warnings with a cell
 - Parsource integration for dependencies identification
 - Inverted representation, ie. embedded in a language
+- Kernels should identify their type, useful for mounting
 
 Kernels:
 - Go

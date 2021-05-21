@@ -49,6 +49,9 @@ class PythonKernel(BaseKernel):
         slot_def = scope[ref]
         # We update the slot
         s.definition = slot_def
+        # FIXME: This is probably not right, the source
+        # should probably be the cell/slot's original source, not
+        # the one we synthesized.
         s.source = slot_code
         return s
 
