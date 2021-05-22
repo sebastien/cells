@@ -37,7 +37,23 @@ class ParseEvent(NamedTuple):
     value: Any
 
 
-class Parser:
+class IParser:
+
+    def parse(self, source: Union[str, Path]):
+        if isinstance(source, Path):
+            with open(source) as f:
+                self.parseLines(f.readlines())
+        elif isinstance(source, str):
+            self.parseLines(source.split("\n"))
+        else:
+            raise ValueError(f"Unknown source type: {source}")
+        return self
+
+    def parseLines(self, lines: Iterable[str]):
+        raise NotImplementedError
+
+
+class Parser(IParser):
     """Parses a Document and creates its Cells. The parser has an intermediate
     expanded line-by-line representation that can be used to generate an alternative model,
     like SAX and DOM for XML."""
@@ -51,34 +67,18 @@ class Parser:
     def __init__(self):
         self.start()
 
-    def parse(self, source: Union[str, Path]):
-        if isinstance(source, Path):
-            with open(source) as f:
-                for line in f.readlines():
-                    self.feed(line)
-        elif isinstance(source, str):
-            for line in source.split("\n"):
-                self.feed(line + "\n")
-        else:
-            raise ValueError(f"Unknown source type: {source}")
-        return self
-
     def parseLines(self, lines: Iterable[str]):
         for _ in lines:
-            self.feed(_)
-        return self
-
-    def feed(self, line: str):
-        self.processEvent(self.parseLine(line))
+            self.parseLine(_)
         return self
 
     def parseLine(self, line: str) -> ParseEvent:
         """Parses a line, returning a tuple prefixed by the parsed type. See
         `T_CONTENT`, `T_COMMENT` and `T_DEFINITION`."""
-        if line.startswith("--"):
-            return self.parseDefinition(line[2:].strip())
-        else:
-            return ParseEvent(T_CONTENT, line)
+        event = self.parseDefinition(line[2:].strip()) if line.startswith(
+            "--") else ParseEvent(T_CONTENT, line)
+        self.processEvent(event)
+        return event
 
     def parseDefinition(self, line: str) -> ParseEvent:
         """Parses a definition line, starting with  `--`"""
@@ -110,10 +110,61 @@ class Parser:
         return self.document.prepare()
 
 
+class EmbeddedParser(IParser):
+
+    RE_HASH_LINE = re.compile(r"^#( (?P<rest>.*)|\s*)$")
+
+    @staticmethod
+    def ExtractLines(lines: Iterable[str], lang="python", prefix=RE_HASH_LINE):
+        """Extract cells definitions embedded in the commands of another language. This
+        currrenlyt only works for comments that have the same prefix for each line, ie
+        not `/*…*/`."""
+        # FIXME: Not sure about the indentation prefix
+        last_line_type = None
+        for i, line in enumerate(lines):
+            if match := prefix.match(line):
+                rest = match.group("rest")
+                if rest and (stripped := rest.lstrip()) and stripped.startswith("--"):
+                    yield rest
+                    last_line_type = "cell"
+                    yield "\n"
+                elif last_line_type == "cell":
+                    yield rest or ""
+                    yield "\n"
+                else:
+                    yield line
+            elif last_line_type == "cell":
+                last_line_type = None
+                yield f"-- :{lang}"
+                yield line
+            elif i == 0:
+                yield f"-- :{lang}"
+                yield line
+            else:
+                yield line
+
+    def __init__(self, parser: Parser = Parser()):
+        self.parser = parser
+        self.lang = "python"
+
+    def parse(self, path: Path, lang: str):
+        self.lang = lang
+        return super().parse(path)
+
+    def parseLines(self, lines: Iterable[str]):
+        return self.parser.parseLines(
+            EmbeddedParser.ExtractLines(lines, lang=self.lang))
+
+
 def parse(*sources: Union[Path]):
     parser = Parser()
-    for _ in sources:
-        parser.parse(_)
+    embedded = EmbeddedParser(parser)
+    for path in sources:
+        ext = path.suffix
+        if ext == ".py":
+            embedded.parse(path, "python")
+        else:
+            parser.parse(path)
     return parser.end()
 
 # EOF

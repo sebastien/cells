@@ -1,4 +1,9 @@
 from . import Command
+from ..parser import parse
+from ..kernel.python import PythonKernel
+from ..kernel.markdown import MarkdownKernel
+from ..kernel.meta import MetaKernel
+from pathlib import Path
 import sys
 
 
