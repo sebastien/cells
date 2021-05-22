@@ -5,6 +5,7 @@ from ..kernel.markdown import MarkdownKernel
 from ..kernel.meta import MetaKernel
 from pathlib import Path
 import sys
+import json
 
 
 class Run(Command):
@@ -43,15 +44,15 @@ class Run(Command):
         # or Markdown.
         for cell in doc.iterCells():
             value = kernel.get(session, cell.ref)
-            if args.with_source:
-                for line in cell.iterSource():
-                    sys.stdout.write(line)
-                sys.stdout.write(f"==\n")
-            else:
-                sys.stdout.write(f"== {cell.name}\n" if cell.name else "==\n")
-            for line in json.dumps(value, indent=1).split("\n"):
-                sys.stdout.write("\t")
-                sys.stdout.write(line)
-                sys.stdout.write("\n")
+            # if args.with_source:
+            #     for line in cell.iterSource():
+            #         sys.stdout.write(line)
+            #     sys.stdout.write(f"==\n")
+            # else:
+            #     sys.stdout.write(f"== {cell.name}\n" if cell.name else "==\n")
+            # for line in json.dumps(value, indent=1).split("\n"):
+            #     sys.stdout.write("\t")
+            #     sys.stdout.write(line)
+            #     sys.stdout.write("\n")
 
 # EOF

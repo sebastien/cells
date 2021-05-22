@@ -1,8 +1,7 @@
-from typing import Dict, List, Any, Tuple
-from ..kernel import BaseKernel, Slot
+from typing import Dict, OrderedDict, Any, Tuple
+from ..kernel import BaseKernel
 from ..utils import sig
 import re
-import time
 
 RE_INDENT = re.compile(r"^(\s*)(.*)$")
 
@@ -23,7 +22,40 @@ def untab(line: str) -> str:
     return f"{indent}{suffix}"
 
 
+class DynamicEnvironment(OrderedDict):
+
+    def get(self, key):
+        print("XXX", key)
+        return super().get(key)
+
+    def __keytransform__(self, key):
+        print("TRAN", key)
+        return key
+
+    def __contains__(self, key: str) -> bool:
+        print("HAS?", key)
+        return super().__contains__(key)
+
+    def __getitem__(self, k: str) -> Any:
+        print("GETTING", k)
+        return super().__getitem__(k)
+
+    def __getattr__(self, k: str) -> Any:
+        print("GETTING.A", k)
+        return super().__getitem__(k)
+
+    def __setitem__(self, k: str, v: Any) -> None:
+        print("SETTING.K", k)
+        return super().__setitem__(k, v)
+
+    def __setattr__(self, k: str, v: Any) -> None:
+        print("SETTING.A", k)
+        return super().__setitem__(k, v)
+
+
 # TODO: The slot invalidation should really be moved to the abstract kernel.
+
+
 class PythonKernel(BaseKernel):
 
     def defineSlot(self, session: str, slot: str):
@@ -38,15 +70,18 @@ class PythonKernel(BaseKernel):
             0, f"def {ref}({', '.join(s.inputs)}):")
         while not slot_lines[-1].strip():
             slot_lines.pop()
+        if len(slot_lines) == 1:
+            slot_lines.append(untab("\tpass"))
         # NOTE: This means that the code must end with an expression
         indent, result = splitIndent(slot_lines.pop())
-        slot_lines.append(f"{indent}return {result}")
+        slot_lines.append(f"{indent}{result}")
         slot_code = "\n".join(slot_lines)
         # We evaluate the function in a completely standalone environment
-        scope: Dict[str, Any] = {}
-        exec(slot_code, {}, scope)
+        scope_locals: OrderedDict[str, Any] = OrderedDict()
+        scope_globals: OrderedDict[str, Any] = OrderedDict()
+        exec(slot_code, scope_globals, scope_locals)
         # NOTE: We should check that the scope only has one entry
-        slot_def = scope[ref]
+        slot_def = scope_locals[ref]
         # We update the slot
         s.definition = slot_def
         # FIXME: This is probably not right, the source
@@ -58,6 +93,14 @@ class PythonKernel(BaseKernel):
     def evalSlot(self, session: str, slot: str):
         s = self.getSlot(session, slot)
         args = [self.get(session, _) for _ in s.inputs or ()]
+        scope_locals: OrderedDict[str, Any] = DynamicEnvironment()
+        scope_globals: OrderedDict[str, Any] = DynamicEnvironment(
+            _d=s.definition,
+            _a=args,
+        )
+        exec("_d(*_a)", scope_globals, scope_locals)
+        print("SLOT", slot, "DEFINES", [
+              _ for _ in scope_locals], "uses", [_ for _ in scope_globals])
         return s.definition(*args) if s.definition else None
 
 # EOF
