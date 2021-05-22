@@ -8,6 +8,7 @@ NAME = r'("[^"]+"|[@\w_][\w_-]*)'
 RE_DEFINITION = re.compile("".join([
     r"\s*(?P<name>", NAME, r")?",
     r"(:(?P<type>\w+))?",
+    r"(\s*\[(?P<modifiers>[\w\d\-_]+(\s+[\w\d\-_]+)*)\])?",
     r"(\s*=(?P<content>.+))?",
     r"\s*(\<\s*(?P<inputs>", NAME, r"(\s+", NAME, r")*))?\s*$"
 ]))
@@ -43,6 +44,7 @@ class Parser:
 
     PROCESSOR = {
         "inputs": lambda v: [unquote(_.strip()) for _ in v.split()] if v else None,
+        "modifiers": lambda v: [_.strip() for _ in v.split()] if v else None,
         "name": lambda _: unquote(_.strip()) if _ else None,
     }
 
@@ -83,7 +85,7 @@ class Parser:
         if match := RE_COMMENT.match(line):
             return ParseEvent(T_COMMENT, match.group("value"))
         elif match := RE_DEFINITION.match(line):
-            return ParseEvent(T_DECLARATION, dict((k, v) for k, v in ((_, self.PROCESSOR.get(_, idem)(match.group(_))) for _ in ("name", "type", "content", "inputs")) if v))
+            return ParseEvent(T_DECLARATION, dict((k, v) for k, v in ((_, self.PROCESSOR.get(_, idem)(match.group(_))) for _ in ("name", "type", "content", "inputs", "modifiers")) if v))
         else:
             raise SyntaxError(f"Could not parse: {line}")
 

@@ -15,6 +15,13 @@ Kernels:
 - CSV
 
 
+Documentation:
+- Using cells to write inline tests
+
 Questions:
 - Without a deamon, a session would be persisted in ~/.cells/sessions/HASH.json
 - With a deamon, a session would be kept in memory, with the supporting kernels active
+
+Ideas:
+- For Python, the cell value is going to be latest locally assigned value,
+  or the value from the locals with the cells name.
