@@ -1,3 +1,4 @@
+# SEE: https://github.com/sebastien/appenv
 appenv_module   cells
 appenv_prepend  PYTHONPATH $APPENV_DIR/src/py
 appenv_prepend  PATH       $APPENV_DIR/bin
