@@ -7,6 +7,6 @@ build/%.md: tests/%.py
 	cells fmt "$<" > "$@"
 
 build/%.html: build/%.md deps/github.css
-	pandoc -s "$<" -c deps/github.css -o "$@"
+	pandoc -s "$<" --css=deps/github.css -o "$@"
 
 # EOF
