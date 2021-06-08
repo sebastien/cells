@@ -23,6 +23,8 @@ expects("a < b", {"name": "a", "inputs": ["b"]})
 expects('a < "b"', {"name": "a", "inputs": ["b"]})
 # Inputs: multiple
 expects("a < b c", {"name": "a", "inputs": ["b", "c"]})
+# Modifiers: single
+expects("a [hide]", {"name": "a", "modifiers": ["hide"]})
 
 #     {"name":"result","type":"shell"}
 # # Inputs

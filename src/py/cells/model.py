@@ -1,6 +1,12 @@
 from typing import Iterable, Any, Optional, List, Dict
 from .utils import sig, equal_lines
 from .dag import DAG
+import re
+
+RE_EMPTY = re.compile("^\s*$")
+
+# TODO: Striplies should be an option in the iteration of sources. Should probably
+# also be moved to `utils`.
 
 
 def striplines(lines: Iterable[str]) -> Iterable[str]:
@@ -22,18 +28,26 @@ class Cell:
     """
     IDS: int = 0
 
-    def __init__(self, name: Optional[str] = None, type: Optional[str] = None, inputs: Optional[List[str]] = None, content: str = ""):
+    def __init__(self, name: Optional[str] = None, type: Optional[str] = None, inputs: Optional[List[str]] = None, modifiers: Optional[List[str]] = None, content: str = ""):
         self.id = str(Cell.IDS)
         Cell.IDS += 1
         self.name: Optional[str] = name
         self.type = type
         self.inputs: List[str] = [_ for _ in inputs or ()]
+        self.modifiers: List[str] = [_ for _ in modifiers or ()]
         self._content: List[str] = content.split("\n")
 
     def equals(self, cell: 'Cell') -> bool:
         """Tells if this cell equals the other cell. This only checks
         type, inputs and content"""
         return self.type == cell.type and equal_lines(self.inputs, cell.inputs) and equal_lines(self._content, cell._content)
+
+    @property
+    def isEmpty(self) -> bool:
+        for _ in self._content:
+            if _ and not RE_EMPTY.match(_):
+                return False
+        return True
 
     @property
     def ref(self) -> str:
@@ -75,7 +89,8 @@ class Cell:
 
     def iterSource(self) -> Iterable[str]:
         yield self.header
-        for _ in self._content:
+        yield "\n"
+        for _ in striplines(self._content):
             yield _
 
     def iterMarkdown(self) -> Iterable[str]:
@@ -132,11 +147,15 @@ class Document:
                 yield cell
 
     def iterSource(self) -> Iterable[str]:
-        for c in self.cells:
+        for i, c in enumerate(_ for _ in self.cells if not _.isEmpty):
+            if i != 0:
+                yield "\n"
             yield from c.iterSource()
 
     def iterMarkdown(self) -> Iterable[str]:
-        for c in self.cells:
+        for i, c in enumerate(_ for _ in self.cells if not _.isEmpty):
+            if i != 0:
+                yield "\n"
             yield from c.iterMarkdown()
 
     def toSource(self) -> str:

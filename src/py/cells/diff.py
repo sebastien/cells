@@ -56,13 +56,15 @@ def equalsDict(a: dict, b: dict):
     for k, v in a.items():
         if k not in b:
             return False
-        if not equals(b[k], v):
+        elif not equals(b[k], v):
             return False
         checked.append(k)
     for k, v in b.items():
         if k in checked:
             continue
-        if not equals(a[k], v):
+        elif k not in a:
+            return False
+        elif not equals(a[k], v):
             return False
     return True
 

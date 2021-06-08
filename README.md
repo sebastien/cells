@@ -13,7 +13,7 @@
 
 ```
 
-Cells is a dataflow engine along with a set of tools that
+Cells is a dataflow engine that
 support the creation of text-based polyglot notebooks
 in a similar way as [Jupyter](https://jupyter.org/) or [Observable](https://observablehq.com/).
 
@@ -22,11 +22,11 @@ Like Observable, Cells uses a dataflow approach to *automatically recalculate* c
 Here is an example:
 
 ```
--- hello:js
-"Hello"
--- who:js
-"World"
--- :js < hello who
+-- js
+const helllo = "Hello"
+-- js
+const who = "World"
+-- js
 `${hello}, ${who}!`
 ```
 
@@ -57,3 +57,9 @@ session for any cell that has not changed.
 ```
 cells run -s SESSION << EOF
 ```
+
+# References
+
+- [Observable](https://observablehq.com/)
+- [Dataflow](https://observablehq.com/@asg017/introducing-dataflow)
+- [Jupyter](https://jupyter.org/)

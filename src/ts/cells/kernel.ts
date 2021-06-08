@@ -33,6 +33,7 @@ class Slot {
   value: any;
   isDirty: boolean;
   definition: Function;
+  definitionSource: string;
   constructor() {
     this.type = "js";
     this.inputs = [];
@@ -40,6 +41,7 @@ class Slot {
     this.value = undefined;
     this.isDirty = false;
     this.definition = () => undefined;
+    this.definitionSource = "";
   }
 }
 
@@ -106,14 +108,14 @@ class Kernel {
     inputs: Array<string>,
     source: string,
     type: string = "js",
-  ): Slot {
+  ): boolean {
     const s = this.getSlot(session, slot);
     s.type = type;
     s.inputs = inputs.map((_) => _);
     s.source = source;
     s.isDirty = true;
     this.defineSlot(session, slot);
-    return s;
+    return true;
   }
 
   get(session: string, slot: string): any {
@@ -132,20 +134,25 @@ class Kernel {
     return true;
   }
 
-  defineSlot(session: string, slot: string) {
+  defineSlot(session: string, slot: string): Slot {
     const s = this.getSlot(session, slot);
     // TODO: We'll need to do a bit of parsing of the source there
     // and extract the result.
-    return new Function(
-      `return function(${
-        s.inputs.join(",")
-      }){let ${slot}=undefined;${s.source}\n;return ${slot}}`,
-    )();
+    const src = `return function(${
+      s.inputs.join(",")
+    }){let ${slot}=undefined||(${s.source})\n;return ${slot}}`;
+    s.definition = new Function(src)();
+    s.definitionSource = src;
+    // DEBUG
+    // console.log("DEF SLOT", slot, ":", s.definitionSource);
+    return s;
   }
 
   evalSlot(session: string, slot: string): any {
     const s = this.getSlot(session, slot);
     const args = s.inputs.map((k) => this.get(session, k));
+    // DEBUG
+    // console.log("EVAL SLOT", s.definition);
     return s.definition ? s.definition.apply(s, args) : undefined;
   }
 }

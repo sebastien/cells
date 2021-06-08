@@ -1,6 +1,5 @@
 # TODO: Should say how to import it
 from ..kernel import BaseKernel
-from typing import List, Any
 try:
     import mistune
     # pip3 install - -user - -upgrade mistune == 2.0.0rc1
