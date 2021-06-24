@@ -1,11 +1,10 @@
-import re
 import sys
 from pathlib import Path
 from . import Command
 from ..parser import parse
 
 
-class FMT(Command):
+class Fmt(Command):
 
     NAME = "fmt"
     HELP = "Formats the document"

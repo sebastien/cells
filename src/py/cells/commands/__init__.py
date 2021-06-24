@@ -9,6 +9,10 @@ class Command:
     def define(self, parser):
         pass
 
+    def out(self, message: str):
+        sys.stdout.write(message)
+        sys.stdout.write("\n")
+
     def run(self, args):
         sys.stdout.write(repr(args))
 

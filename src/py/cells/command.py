@@ -1,7 +1,8 @@
 import sys
 import argparse
-from .commands.fmt import FMT
+from .commands.fmt import Fmt
 from .commands.run import Run
+from .commands.doc import Doc
 from typing import List
 
 
@@ -14,7 +15,7 @@ def run(args: List[str] = sys.argv[1:]):
     subparsers = parser.add_subparsers(
         help="Available subcommands", dest='subcommand')
     # We register the subcommands
-    cmds = dict((_.NAME, _()) for _ in [Run, FMT])
+    cmds = dict((_.NAME, _()) for _ in [Run, Fmt, Doc])
     for _ in cmds.values():
         _.define(subparsers.add_parser(_.NAME, help=_.HELP))
     parsed = None
