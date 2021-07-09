@@ -23,6 +23,16 @@
 // - [https://github.com/lukejacksonn/es-react](https://github.com/lukejacksonn/es-react), 2020, as odd as it is, we still can't import React straight into the browser using ES6 modules.
 
 const RE_SLOT = /\{__(\d)+__\}/;
+const Factories = {};
+
+// --
+// We provide a transparent function that makes it possible to register
+// components as they are imported. They then become available as a new
+// node type.
+export const register = (factory, name) => {
+  Factories[factory.name ?? name] = factory;
+  return factory;
+};
 
 const createElement = (name, attrs, children) =>
   createElement.factory
@@ -59,7 +69,8 @@ const parseJSX = (parts) => {
 
 const unslot = (value, slots) => {
   const match = value.match(RE_SLOT);
-  return match ? slots[parseInt(match[1])] : value || undefined;
+  const slot = match ? slots[parseInt(match[1])] : value;
+  return slot;
 };
 
 // --
@@ -78,9 +89,10 @@ const toVDOM = (node, slots, createElement, key) => {
 
     // We populate the `props`, replacing the `slots` along the way.
     const props = { key: key };
-    for (let i = node.attributes.length - 1; i >= 0; i--) {
-      const { k, v } = node.attributes[i];
-      props[k] = unslot(v, slots);
+    const attrs = node.attributes;
+    for (let i = attrs.length - 1; i >= 0; i--) {
+      const { name, value } = attrs.item(i);
+      props[name] = unslot(value, slots);
     }
 
     // We populate the children
@@ -90,8 +102,9 @@ const toVDOM = (node, slots, createElement, key) => {
       children.push(child);
     }
 
-    // We call the factory method
-    return createElement(type, props, children);
+    return Factories[type]
+      ? Factories[type](props, children)
+      : createElement(type, props, children);
   }
 };
 
