@@ -2,14 +2,20 @@
 # PANDOC_CSS=https://gist.githubusercontent.com/dashed/6714393/raw/ae966d9d0806eb1e24462d88082a0264438adc50/github-pandoc.css
 PANDOC_CSS=https://cdn.rawgit.com/sindresorhus/github-markdown-css/gh-pages/github-markdown.css
 PANDOC=pandoc
+PYTHON=python
+CELLS=cells
+CURL=curl
+
+run:
+	$(PYTHON) -m http.server
 
 deps/github.css:
 	@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)" ; fi
-	curl  > "$@"
+	$(CURL)  > "$@"
 
 build/%.md: tests/%.py
 	@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)" ; fi
-	cells fmt -tmd "$<" > "$@"
+	$(CELLS) fmt -tmd "$<" > "$@"
 
 build/%.html: build/%.md deps/github.css
 	@if [ ! -d "$(dir $@)" ]; then mkdir -p "$(dir $@)" ; fi
