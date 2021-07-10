@@ -34,16 +34,27 @@ export const component = (factory, name) => {
   return factory;
 };
 
-const createElement = (name, attrs, children) =>
-  createElement.factory
+// --
+// The `createElement` function acts as a wrapper around the default
+// element factory, looking first in the `Factories` map. This makes it
+// possible to register custom elements that are then used first instead
+// of the generic element factory.
+export const createElement = (name, attrs, children) =>
+  Factories[name]
+    ? Factories[name](attrs, children)
+    : createElement.factory
     ? createElement.factory(name, attrs, children)
     : { name, attrs, children };
 
-export const setFactory = (factory) => {
+// --
+// Sets the default element factory.
+export const setElementFactory = (factory) => {
   createElement.factory = factory;
   return factory;
 };
 
+// --
+// Parses the given `text` as an XML/HTML DOM tree
 const parseXML = (text) => {
   try {
     return new DOMParser().parseFromString(text, "text/xml");
@@ -67,6 +78,9 @@ const parseJSX = (parts) => {
   return parseXML(slotted).firstChild;
 };
 
+// --
+// Resolves the given value from the slots array if it is a slot (`__N__`),
+// returning the `N`th value of the slots array.
 const unslot = (value, slots) => {
   const match = value.match(RE_SLOT);
   const slot = match ? slots[parseInt(match[1])] : value;
@@ -103,13 +117,12 @@ const toVDOM = (node, slots, createElement, key) => {
       children.push(child);
     }
 
-    return Factories[type]
-      ? Factories[type](props, children)
-      : createElement(type, props, children);
+    return createElement(type, props, children);
   }
 };
 
 // --
+// The template literal processor that turns the JSX into a VDOM.
 export const jsx = (parts, ...slots) => {
   // TODO: We should test Fragment, Context, and the likes
   return toVDOM(parseJSX(parts), slots, createElement);
