@@ -1,0 +1,8 @@
+:root {
+	--pad-h: 12px;
+	--pad-v: 6px;
+	--color-grey-ltr: #F0F0F0;
+	--color-white: #FFFFFF;
+	--control-bd:  var(--color-grey-ltr);
+	--control-bg:  var(--color-white);
+}

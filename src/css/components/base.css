@@ -1,0 +1,9 @@
+.control {
+	display: inline-block;
+	margin: 0px;
+	padding: var(--pad-v) var(--pad-h);
+	outline: 0px solid transparent;
+	border: 1px solid var(--control-bd);
+	background-color: var(--control-bg);
+	cursor: pointer;
+}
