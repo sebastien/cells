@@ -29,7 +29,7 @@ const Factories = {};
 // We provide a transparent function that makes it possible to register
 // components as they are imported. They then become available as a new
 // node type.
-export const register = (factory, name) => {
+export const component = (factory, name) => {
   Factories[factory.name ?? name] = factory;
   return factory;
 };
@@ -74,9 +74,10 @@ const unslot = (value, slots) => {
 };
 
 // --
-// Transforms the DOM tree into a React VDOM, replacing parameter
-// placeholders (see `RE_SLOT`) with the corresponding arguments from
-// from the `slots` array.
+// Transforms the DOM tree into a VDOM, replacing parameter placeholders (see
+// `RE_SLOT`) with the corresponding arguments from from the `slots` array.
+// Functions previously registered as `component`s will be used to create
+// elements of the given type, taking `(props,children)` as arguments.
 const toVDOM = (node, slots, createElement, key) => {
   if (node.nodeValue) {
     // We replace the trimmed node value by the corresponding argument.
