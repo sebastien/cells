@@ -80,7 +80,7 @@ class Doc(Command):
         super().define(parser)
         parser.add_argument("-t", "--to", dest="format", action="store", default="html",
                             help=f"Output format: {', '.join(self.FORMATS)}")
-        parser.add_argument("-o", "--output", dest="output", action="store", default="docs/cells",
+        parser.add_argument("-o", "--output", dest="output", action="store",
                             help=f"Output directory")
         parser.add_argument("files", metavar="FILE", type=str, nargs='*',
                             help='Input files to format')
@@ -93,17 +93,21 @@ class Doc(Command):
                 pass
             if path.is_file():
                 sources.append(path)
-        output = Path(args.output)
         ext = f".{args.format}"
+        out = sys.stdout if args.output in (None, "-") else None
+        # TODO: Invalidated
         # Step 2: Ensuring that output exists
-        if not output.exists():
-            output.mkdir(parents=True)
+        # output = Path(args.output) if args.output else None
+        # if output and not output.exists():
+        #     output.mkdir(parents=True)
         # Step 3: Generating the files
         for path in sources:
             doc = parse(path)
-            md = "\n".join(_ for _ in doc.iterMarkdown())
+            md = "".join(_ for _ in doc.iterMarkdown())
             res = texto.render(texto.parse(md), args.format)
-            with open(target := output.joinpath(path).with_suffix(ext), "wt") as f:
-                self.out(f"Creating {target}")
-                f.write(HTML.format(body=res, style=CSS))
+            out.write(res)
+            # out.write(HTML.format(body=res, style=CSS))
+            # with open(target := output.joinpath(path).with_suffix(ext), "wt") as f:
+            #     self.out(f"Creating {target}")
+            #     f.write(HTML.format(body=res, style=CSS))
 # EOF
