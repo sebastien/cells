@@ -106,7 +106,7 @@ class Cell:
     def toSource(self) -> str:
         return "".join(_ for _ in self.iterSource())
 
-    def toMardown(self) -> str:
+    def toMarkdown(self) -> str:
         return "".join(_ for _ in self.iterMarkdown())
 
     def toPrimitive(self):
@@ -115,7 +115,7 @@ class Cell:
             "name": self.name,
             "type": self.type,
             "inputs": self.inputs,
-            "content": self.content,
+            "content": self._content,
         }.items() if v is not None and v != [])
 
 
