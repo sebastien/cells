@@ -1,15 +1,21 @@
 import sys
+import json
 from pathlib import Path
 from . import Command
 from ..parser import parse
 
 
+# --
+# The `Fmt` command is similar to the `Doc` command, but operates at a lower,
+# simpler level where we format or export the core data structures. The `Doc`
+# command will perform fancier transformations, such as indexing symbols
+# and working with a set of documents to produce an output.
 class Fmt(Command):
 
     NAME = "fmt"
-    HELP = "Formats the document"
+    HELP = "Formats a cells document, or converts it to a different format"
 
-    FORMATS = ["cd", "html", "md"]
+    FORMATS = ["cd", "md", "json"]
 
     def define(self, parser):
         super().define(parser)
@@ -22,6 +28,8 @@ class Fmt(Command):
 
     def run(self, args):
         doc = parse(*(Path(_) for _ in args.files))
+        if not args.format in self.FORMATS:
+            return self.err(f"'-t' option should be one of ${', '.join(self.FORMATS)}, got: {args.format}")
         if args.output == "-":
             out = sys.stdout
         else:
@@ -29,12 +37,12 @@ class Fmt(Command):
         if args.format == "md":
             for chunk in doc.iterMarkdown():
                 out.write(chunk)
+        elif args.format == "json":
+            json.dump(doc.toPrimitive(), out)
         else:
             for chunk in doc.iterSource():
                 out.write(chunk)
         if out != sys.stdout:
             out.close()
-        # sys.stdout.write(doc.toSource())
-        # sys.stdout.write(doc.toSource())
 
 # EOF

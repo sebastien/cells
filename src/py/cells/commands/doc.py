@@ -1,110 +1,106 @@
 import re
 import sys
+from subprocess import Popen
 from pathlib import Path
 from . import Command
 from ..parser import parse
 try:
     import texto
 except ImportError:
-    pass
-
-HTML = """\
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head><meta charset="utf8" /><style type="text/css">
-{style}
-</style></head>
-<body>{body}</body>
-</html>
-"""
-
-CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Fraunces&Source+Code+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,300;1,400;1,500;1,600;1,700;1,900&display=swap');
-
-:root {
-
-    --color-text: #222936;
-    --color-code-bg: #ececec;
-    --color-code: #001843;
-
-}
+    texto = None
 
 
-body {
-	padding: 80px;
-	color: #222222;
-	font-family: 'Fraunces', serif;
-	font-size: 16px;
-	line-height: 22px;
-}
-
-p, h1, h2, h3, h4, h5, h6 {
-	font-size: 16px;
-	line-height: 22px;
-}
-
-pre {
-	font-family: 'Source Code Pro', monospace;
-    background-color: var(--color-code-bg);
-    padding: 12px;
-    line-height: 18px;
-    padding-top: 6px;
-    border-radius: 4px;
-    overflow: auto;
-}
-
-code {
-    color: var(--color-code);
-}
-
-"""
+def ensure_dir(path: Path) -> bool:
+    if path and not path.exists():
+        path.mkdir(parents=True)
+    return path.is_dir()
 
 
+def document(path: Path, format: str) -> str:
+    """Returns a document in the given `format` representing the cells
+    document at the given `path`."""
+    doc = parse(path)
+    md = "".join(_ for _ in doc.iterMarkdown())
+    if format in ("md", "markdown"):
+        return md
+    elif format == "pdf":
+        # TODO: We should detect if texto is available or not.
+        # process = Popen(["pandoc", f"-t{format}"])
+        pass
+    else:
+        # NOTE: Texto is not great ATM with markdown->markdown conversions,
+        # but that's OK.
+        return texto.render(texto.parse(md), format)
+
+
+# --
+# TODO: Should generate an index of cells (symbols) and an index of keywords,
+# or maybe we generate this using a separate command.
+
+# --
+# TODO: At the very least, we should generate a catalogue of the notebooks
+# as well as the sections. We could easily do that with a summarizer.
+
+# --
 # TODO: Doc should also generate an index of terms and symbols, as well as
 # the graph of dependencies. By default, doc can be used like `fmt`, but if the
 # output is a directory, will create one file per output, otherwise will put
 # everything into one big file.
 class Doc(Command):
+    """Generates human-readable documentation files out of a set of input 
+    documents."""
 
     NAME = "doc"
     HELP = "Generates documentation from a set of files"
 
-    FORMATS = ["html", "md"]
-    EXT = [".py", ".js"]
+    FORMATS = ["md", "json"] + (["html", "xml"] if texto else []) + ["pdf"]
+    ALIASES = {"md": "markdown"}
 
     def define(self, parser):
         super().define(parser)
-        parser.add_argument("-t", "--to", dest="format", action="store", default="html",
+        parser.add_argument("-t", "--to", dest="format", action="store", default=self.FORMATS[0],
                             help=f"Output format: {', '.join(self.FORMATS)}")
-        parser.add_argument("-o", "--output", dest="output", action="store",
-                            help=f"Output directory")
+        parser.add_argument("-o", "--output", dest="output", action="store", default="-",
+                            help=f"Output file or directory")
         parser.add_argument("files", metavar="FILE", type=str, nargs='*',
                             help='Input files to format')
 
     def run(self, args):
-        # Step 1: We get the files
+        # We get the input files
         sources = []
         for path in (Path(_) for _ in args.files):
             if not path.exists():
                 pass
             if path.is_file():
                 sources.append(path)
-        ext = f".{args.format}"
-        out = sys.stdout if args.output in (None, "-") else None
-        # TODO: Invalidated
-        # Step 2: Ensuring that output exists
-        # output = Path(args.output) if args.output else None
-        # if output and not output.exists():
-        #     output.mkdir(parents=True)
-        # Step 3: Generating the files
-        for path in sources:
-            doc = parse(path)
-            md = "".join(_ for _ in doc.iterMarkdown())
-            res = texto.render(texto.parse(md), args.format)
-            out.write(res)
-            # out.write(HTML.format(body=res, style=CSS))
-            # with open(target := output.joinpath(path).with_suffix(ext), "wt") as f:
-            #     self.out(f"Creating {target}")
-            #     f.write(HTML.format(body=res, style=CSS))
+        # We validate the arguments
+        if not texto:
+            return self.err(
+                "'texto' package is missing, can't use the -t option: python -m pip install texto")
+        if not args.format in self.FORMATS:
+            return self.err(f"'-t' option should be one of ${', '.join(self.FORMATS)}, got: {args.format}")
+        output_ext = f".{args.format}"
+        output_path = Path(args.output)
+        output_format = self.ALIASES.get(args.format, args.format)
+        if not sources:
+            pass
+        elif len(sources) == 1:
+            # Rule: if we have a single argument, then the output is file
+            with open("/dev/stdout" if args.output == "-" else args.output, "wt") as f:
+                f.write(document(sources[0], output_format))
+        else:
+            # Rule: if we have multiple arguments, then the output is a directory
+            if not ensure_dir(output_path):
+                return self.err(f"Output path should be a directory when multiple arguments are given, got: {output_path} for {args.files}")
+            for path in sources:
+                try:
+                    doc = document(path, output_format)
+                except Exception as e:
+                    self.err(f"Could not process file '{path}': {e}")
+                if doc:
+                    target = output_path.joinpath(path).with_suffix(output_ext)
+                    ensure_dir(target.parent)
+                    with open(target, "wt") as f:
+                        self.out(f"Creating {target} from {path}")
+                        f.write(doc)
 # EOF

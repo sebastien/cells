@@ -13,6 +13,11 @@ class Command:
         sys.stdout.write(message)
         sys.stdout.write("\n")
 
+    def err(self, message: str):
+        sys.stderr.write(message)
+        sys.stderr.write("\n")
+        return False
+
     def run(self, args):
         sys.stdout.write(repr(args))
 

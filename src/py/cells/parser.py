@@ -113,12 +113,19 @@ class Parser(IParser):
 class EmbeddedParser(IParser):
 
     RE_HASH_LINE = re.compile(r"^#( (?P<rest>.*)|\s*)$")
+    RE_SLASH_LINE = re.compile(r"^//( (?P<rest>.*)|\s*)$")
+
+    LANG = {
+        "python": RE_HASH_LINE,
+        "javascript": RE_SLASH_LINE,
+    }
 
     @staticmethod
-    def ExtractLines(lines: Iterable[str], lang="python", prefix=RE_HASH_LINE):
+    def ExtractLines(lines: Iterable[str], lang="python"):
         """Extract cells definitions embedded in the commands of another language. This
         currrenlyt only works for comments that have the same prefix for each line, ie
         not `/*…*/`."""
+        prefix = EmbeddedParser.LANG[lang]
         # FIXME: Not sure about the indentation prefix
         last_line_type = None
         for i, line in enumerate(lines):
@@ -156,15 +163,26 @@ class EmbeddedParser(IParser):
             EmbeddedParser.ExtractLines(lines, lang=self.lang))
 
 
+LANGUAGES = {
+    "python": [".py"],
+    "javascript": [".js", ".jsx", ".ts"],
+    "*": [],
+}
+
+
 def parse(*sources: Union[Path]):
     parser = Parser()
     embedded = EmbeddedParser(parser)
     for path in sources:
         ext = path.suffix
-        if ext == ".py":
-            embedded.parse(path, "python")
-        else:
-            parser.parse(path)
+        # NOTE: This is where we can add extensibility to the language
+        # matching.
+        for lang, exts in LANGUAGES.items():
+            if ext in exts:
+                embedded.parse(path, lang)
+                break
+            elif not exts:
+                parser.parse(path)
     return parser.end()
 
 # EOF
