@@ -8,11 +8,13 @@
 	<div id="root"></div>
 		<script type="module">
 			import { createElement, render } from 'https://unpkg.com/preact?module';
-			import Button from "../js/components/Button.js";
-			import {jsx, setFactory} from "../js/jsx.js";
-			setFactory(createElement);
+			import MarkupDocument from "../js/components/MarkupDocument.js";
+			import {jsx, setElementFactory} from "../js/jsx.js";
+			setElementFactory(createElement);
 			const App = jsx`<ul><li>${"Hello" + "world"}<Button name="OK" /></li></ul>`
-			render(App, document.getElementById('root'));
+			fetch("/pouet.json").then(_ => _.json()).then(_ => {
+				render(jsx`<MarkupDocument content="${_}" />`, document.getElementById('root'));
+			})
 		</script>
 	</body>
 
