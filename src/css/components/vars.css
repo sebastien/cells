@@ -3,6 +3,12 @@
 	--pad-v: 6px;
 	--color-grey-ltr: #F0F0F0;
 	--color-white: #FFFFFF;
+    --color-black-lt: #222936;
+    --color-black: #001843;
+    --color-grey-lt: #ececec;
+	--text: var(--color-black-lt);
+	--code: var(--color-black);
+	--code-bg: var(--color-grey-lt);
 	--control-bd:  var(--color-grey-ltr);
 	--control-bg:  var(--color-white);
 }

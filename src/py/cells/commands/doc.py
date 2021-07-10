@@ -45,8 +45,10 @@ p, h1, h2, h3, h4, h5, h6 {
 }
 
 pre {
+	font-family: 'Source Code Pro', monospace;
     background-color: var(--color-code-bg);
-    padding: 13px;
+    padding: 12px;
+    line-height: 18px;
     padding-top: 6px;
     border-radius: 4px;
     overflow: auto;
@@ -56,18 +58,13 @@ code {
     color: var(--color-code);
 }
 
-code, pre {
-	font-family: 'Source Code Pro', monospace;
-    font-size: 13px;
-	line-height: 11px;
-}
-
-
-pre {
-}
 """
 
 
+# TODO: Doc should also generate an index of terms and symbols, as well as
+# the graph of dependencies. By default, doc can be used like `fmt`, but if the
+# output is a directory, will create one file per output, otherwise will put
+# everything into one big file.
 class Doc(Command):
 
     NAME = "doc"

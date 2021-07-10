@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces&Source+Code+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,300;1,400;1,500;1,600;1,700;1,900&display=swap');
+
+.MarkupDocument {
+	padding: 80px;
+	color: #222222;
+	font-family: 'Fraunces', serif;
+	font-size: 16px;
+	line-height: 22px;
+}
+
+.MarkupDocument p, .MarkupDocument h1, .MarkupDocument h2, .MarkupDocument h3, .MarkupDocument h4, .MarkupDocument h5, .MarkupDocument h6 {
+	font-size: 16px;
+	line-height: 22px;
+}
+
+.MarkupDocument code, .MarkupDocument pre {
+	font-family: 'Source Code Pro', monospace;
+    font-size: 13px;
+	line-height: 18px;
+}
+
+
+.MarkupDocument pre {
+    background-color: var(--color-code-bg);
+	font-size: 12px;
+    line-height: 18px;
+    padding: 13px;
+    padding-top: 6px;
+    border-radius: 4px;
+    overflow: auto;
+}
+
+.MarkupDocument code {
+    color: var(--color-code);
+}
+
+/* EOF */

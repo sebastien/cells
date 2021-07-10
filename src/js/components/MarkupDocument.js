@@ -15,6 +15,7 @@ const MARKUP = {
   p: "p",
 };
 
+// TODO: We should have some specific transforms here.
 const markup = ([name, attrs, children]) =>
   createElement(
     MARKUP[name] ?? "div",
