@@ -25,6 +25,9 @@
 const RE_SLOT = /\{__(\d)+__\}/;
 const Factories = {};
 
+// TODO: Support multiple children
+// TODO: Whitespace handling seems off
+
 // --
 // We provide a transparent function that makes it possible to register
 // components as they are imported. They then become available as a new
@@ -125,7 +128,11 @@ const toVDOM = (node, slots, createElement, key) => {
 // The template literal processor that turns the JSX into a VDOM.
 export const jsx = (parts, ...slots) => {
   // TODO: We should test Fragment, Context, and the likes
-  return toVDOM(parseJSX(parts), slots, createElement);
+  return toVDOM(
+    parseJSX(typeof parts === "string" ? [parts] : parts),
+    slots,
+    createElement,
+  );
 };
 
 // EOF
