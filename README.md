@@ -63,3 +63,4 @@ cells run -s SESSION << EOF
 - [Observable](https://observablehq.com/)
 - [Dataflow](https://observablehq.com/@asg017/introducing-dataflow)
 - [Jupyter](https://jupyter.org/)
+- [Irydium](https://github.com/irydium/irydium)
