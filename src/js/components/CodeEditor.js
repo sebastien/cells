@@ -1,6 +1,5 @@
 import { component, jsx } from "../jsx.js";
-// FIXME: This does not quite work yet
-//import { useEffect, useRef } from "../hooks.js";
+import { useEffect, useRef } from "../hooks.js";
 
 import {
   basicSetup,

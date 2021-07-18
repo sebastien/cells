@@ -17,6 +17,7 @@ const MarkdownCell = (props) => {
 
 const CodeCell = (props) => {
   const lines = props.content;
+  console.log("LINES", lines);
   return CodeEditor({ lines });
 };
 
@@ -27,6 +28,7 @@ const ContentTypes = {
 };
 
 export default component(function CellsDocument(props) {
+  console.log("PROPS", props);
   return jsx`
 	  <div class="MarkupDocument">${
     props.content.map((_) => (ContentTypes[_.type] ?? MarkdownCell)(_))

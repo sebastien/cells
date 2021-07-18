@@ -3,19 +3,28 @@
 		<meta charset="utf8">
 		<link rel="stylesheet" href="../css/components.css">
 		<script src="https://unpkg.com/showdown/dist/showdown.min.js"></script>
+		<!--
+		<script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+		<script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+		-->
 	</head>
 	<body>
-	</body>
 	<div id="root"></div>
 		<script type="module">
-			import { createElement, render } from 'https://unpkg.com/preact@latest?module';
+			// import { createElement, render } from 'https://unpkg.com/preact@latest?module';
+			import { createElement, render } from 'https://cdn.skypack.dev/preact';
+			//import { createElement, render } from 'https://unpkg.com/preact@latest/debug/dist/debug.module.js?module';
 			import CellsDocument from "../js/components/CellsDocument.js";
 			import {jsx, setElementFactory} from "../js/jsx.js";
+			// const render = ReactDOM.render;
+			// const createElement = React.createElement;
 			setElementFactory(createElement);
 			const App = jsx`<ul><li>${"Hello" + "world"}<Button name="OK" /></li></ul>`
-			fetch("/build/js/jsx.js.json").then(_ => _.json()).then(_ => {
-				render(jsx`<CellsDocument content="${_}" />`, document.getElementById('root'));
-			})
+			const content = [{type:"python", content:["a = 10"]}];
+			render(jsx`<CellsDocument content="${content}" />`, document.getElementById('root'));
+			// fetch("/build/js/jsx.js.json").then(_ => _.json()).then(_ => {
+			// 	render(jsx`<CellsDocument content="${_}" />`, document.getElementById('root'));
+			// })
 		</script>
 	</body>
 
