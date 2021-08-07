@@ -25,14 +25,13 @@ except ImportError as e:
         "Missing 'pygments', run: python -m pip install --user Pygments")
 
 
-#   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sebastien/cells/src/css/stylesheet.css" />
 HTML_PAGE_PRE = """\
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
     <title>{title}</title>
-    <link rel="stylesheet" href="stylesheet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sebastien/cells/src/css/stylesheet.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
   <body class="document">
