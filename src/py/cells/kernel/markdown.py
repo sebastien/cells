@@ -1,5 +1,6 @@
 # TODO: Should say how to import it
 from ..kernel import BaseKernel
+from typing import List
 try:
     import mistune
     # pip3 install - -user - -upgrade mistune == 2.0.0rc1
@@ -9,8 +10,9 @@ except Exception as e:
     raise ImportError(
         "Mistune 2.0+ required: python -m pip install --user mistune==2.0.0rc1")
 
-markdown = mistune.create_markdown(renderer=mistune.AstRenderer())
-html = mistune.html
+parseMarkdown = mistune.create_markdown(renderer=mistune.AstRenderer())
+renderMarkdown = mistune.html
+
 
 
 class MarkdownKernel(BaseKernel):
@@ -20,10 +22,10 @@ class MarkdownKernel(BaseKernel):
 
     def evalSlot(self,  session: str, slot: str):
         s = self.getSlot(session, slot)
-        return markdown(s.source)
+        return parseMarkdown(s.source)
 
     def renderSlot(self, session: str, slot: str):
         s = self.getSlot(session, slot)
-        return html(s.source)
+        return renderMarkdown(s.source)
 
 # EOF

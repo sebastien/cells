@@ -20,7 +20,7 @@
 // - [Hyperscript Tagged Markup](https://github.com/developit/htm), 2021, a JSX alternative
 // - [React without Webpack](https://datastation.multiprocess.io/blog/2021-07-08-react-without-webpack.html), 2021
 // - [Introducing the new JSX Transform](https://reactjs.org/blog/2020/09/22/introducing-the-new-jsx-transform.html), 2020, mentions an alternative to `React.createElement`.
-// - [https://github.com/lukejacksonn/es-react](https://github.com/lukejacksonn/es-react), 2020, as odd as it is, we still can't import React straight into the browser using ES6 modules.
+// - [ES React](https://github.com/lukejacksonn/es-react), 2020, as odd as it is, we still can't import React straight into the browser using ES6 modules.
 
 const RE_SLOT = /\{__(\d)+__\}/;
 const Factories = {};

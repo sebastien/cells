@@ -63,6 +63,7 @@ class Cell:
 
     @property
     def source(self) -> str:
+        """Returns the source code for the cell as a string"""
         lines = self._content
         i = len(lines) - 1
         while i >= 0 and lines[i].strip() == "\n":

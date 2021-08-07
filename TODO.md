@@ -17,6 +17,7 @@ Kernels:
 
 Documentation:
 - Using cells to write inline tests
+- Micah Lerner has a great typo https://www.micahlerner.com, which is actually from Tufte!
 
 Questions:
 - Without a deamon, a session would be persisted in ~/.cells/sessions/HASH.json
