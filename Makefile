@@ -11,6 +11,7 @@ PRODUCT_ALL=$(PRODUCT_CELLS)
 
 build: $(PRODUCT_ALL)
 
+# gist edit https://gist.github.com/9f94ee52e539e624a73cec1b8ce3fdae
 run:
 	$(PYTHON) -m http.server
 

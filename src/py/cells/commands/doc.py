@@ -1,5 +1,6 @@
 import re
 import sys
+import os
 from typing import Iterable, Tuple
 from subprocess import Popen
 from pathlib import Path
@@ -24,20 +25,34 @@ except ImportError as e:
         "Missing 'pygments', run: python -m pip install --user Pygments")
 
 
+#   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sebastien/cells/src/css/stylesheet.css" />
 HTML_PAGE_PRE = """\
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
-    <title>${TITLE}</title>
+    <title>{title}</title>
     <link rel="stylesheet" href="stylesheet.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
   <body class="document">
+  {navigation}
+  <div class="cells">
 """
 
+CELL_PRE = """\
+<div class="cell" id="{cell_ref}"><a class="cell-ref" name="{cell_ref}" />
+<a class="cell-target" href="#{cell_ref}"></a>
+"""
+
+CELL_POST = """\
+</div>
+"""
+
+
 HTML_PAGE_POST = """\
-    </body>
+</div>
+</body>
 </html>
 """
 
@@ -51,6 +66,52 @@ def ensure_dir(path: Path) -> Path:
         path.mkdir(parents=True)
     assert path.is_dir()
     return path
+
+
+def renderNavigation(sources: list[Path], current: Path) -> str:
+    # TODO: This first part should be split with the other one
+    paths = [str(_).split("/") for _ in sources]
+    prefix = []
+    depth = 0
+    max_depth = max(len(_) for _ in paths)
+    res = ['<div class="navigation"><div class="navigation-title"></div><div class="navigation-content">']
+    while depth < max_depth:
+        current_prefix = None
+        for i, p in enumerate(paths):
+            if len(p) < depth:
+                break
+            if i == 0:
+                current_prefix = p[depth]
+            elif p[depth] != current_prefix:
+                current_prefix = None
+                break
+        if current_prefix:
+            prefix.append(current_prefix)
+            depth += 1
+        else:
+            break
+
+    indent = 0
+    res.append('<ul class="navigation-files">')
+    current_parent = current.parent
+    for path in paths:
+        rel_path = os.path.relpath("/".join(path), current_parent)
+        p = path[len(prefix):]
+        n = len(p)
+        name, ext = os.path.splitext(path[-1])
+        ext = ext[1:]
+
+        while indent < n - 1:
+            res.append(
+                f'<li class="navigation-dir"><span class="navigation-dirname">{".".join(p[:indent+1])}</span><ul class="navigation-files">')
+            indent += 1
+        while n <= indent:
+            res.append("</ul></li>")
+            indent -= 1
+        res.append(
+            f'<li class="navigation-file" data-ext="{ext}"><a class="navigation-link" href="{rel_path}.html"><span class="navigation-name">{name}</span><span class="navigation-ext">{ext}</span></a></li>')
+    res.append('</ul></div></div>')
+    return "\n".join(res)
 
 
 def render(path: Path, format: str) -> Iterable[Tuple[Cell, str, str]]:
@@ -76,7 +137,7 @@ def renderHTML(path: Path) -> Iterable[Tuple[Cell, str, str]]:
             yield (cell, cell_type, html)
         else:
             lexer = get_lexer_by_name(cell_type, stripall=True)
-            formatter = HtmlFormatter(linenos=True, cssclass="source")
+            formatter = HtmlFormatter(linenos=False, cssclass="source")
             html = highlight(cell.source, lexer, formatter)
             yield (cell, cell_type, html)
 
@@ -140,15 +201,18 @@ class Doc(Command):
                 except Exception as e:
                     self.err(f"Could not process file '{path}': {e}")
                 if chunks:
-                    target = output_path.joinpath(path).with_suffix(output_ext)
+                    # FIXME: Not ideal
+                    target = Path(f"{output_path.joinpath(path)}{output_ext}")
                     ensure_dir(target.parent)
                     self.info(f"Writing: {target}")
+                    navigation = renderNavigation(sources, path)
                     with open(target, "wt") as f:
-                        f.write(HTML_PAGE_PRE)
+                        f.write(HTML_PAGE_PRE.format(
+                            title=target.name, navigation=navigation))
                         for cell, cell_type, html in chunks:
-                            f.write(f'<section class="{cell_type}">')
+                            f.write(CELL_PRE.format(cell_ref=cell.id))
                             f.write(html)
-                            f.write(f'</section>')
+                            f.write(CELL_POST)
                         f.write(HTML_PAGE_POST)
 
 
