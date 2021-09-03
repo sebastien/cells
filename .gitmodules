@@ -1,0 +1,9 @@
+[submodule "deps/tree-sitter-go"]
+	path = deps/tree-sitter-go
+	url = https://github.com/tree-sitter/tree-sitter-go
+[submodule "deps/tree-sitter-javascript"]
+	path = deps/tree-sitter-javascript
+	url = https://github.com/tree-sitter/tree-sitter-javascript
+[submodule "deps/tree-sitter-python"]
+	path = deps/tree-sitter-python
+	url = https://github.com/tree-sitter/tree-sitter-python
