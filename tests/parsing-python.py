@@ -1,5 +1,6 @@
-from cells.kernel.parsing import PythonParser, Processor, Scope, Symbol
+from cells.kernel.parsing import PythonParser, Processor, Scope, Symbol, extract
 from tree_sitter import Node
+from pprint import pprint
 import re
 
 # -- ASSIGNMENTS
@@ -31,7 +32,7 @@ assert parser.query(ASSIGNMENT_QUERY, EXAMPLES["ASSIGNMENTS"]) == {
 class DataflowProcessor(Processor):
 
     def init(self):
-        self.root = Scope()
+        self.root = Scope(type="module")
         self.scope = self.root
         self.mode = None
         self.defs = set()
@@ -40,28 +41,75 @@ class DataflowProcessor(Processor):
 
     def on_end(self):
 
-        defs = set()
-        refs = set()
+        symbols = {}
 
-        def define(scope: Scope):
-            for slot, mode in scope.slots.items():
-                if mode == "def":
-                    defs.add(slot)
-
-        def walk(scope: Scope):
-            for slot, mode in scope.slots.items():
-                if mode == "ref" and not scope.defines(slot):
-                    refs.add(slot)
-
-        define(self.root)
-        [define(_) for _ in self.root.children]
+        def walk(scope: Scope, depth: int):
+            if depth == 1 or scope.qualname:
+                name = scope.qualname or f"#{len(symbols)}"
+                symbols[name] = Symbol(name=name, scope=scope)
+            #    defs.add(scope.qualname)
+            # for ref, _ in scope.refs.items():
+            #    if not scope.isDefined(ref):
+            #        refs.add(ref)
 
         self.root.walk(walk)
-        print(self.root.asDict())
-        print("Defs", defs)
-        print("Refs", refs)
+        pprint(self.root.asDict())
+        print(symbols)
+
+    # --
+    # ### Definitions
+
+    def on_function_definition(self, node: Node, value: str, depth: int, breadth: int):
+        return self.on_definition(node, value, depth, breadth, "function")
+
+    def on_class_definition(self, node: Node, value: str, depth: int, breadth: int):
+        return self.on_definition(node, value, depth, breadth, "class")
+
+    def on_assignment(self, node: Node, value: str, depth: int, breadth: int):
+        # TODO: We're not handling the asssignment properly, ie.
+        # class A:
+        #   STATIC = 1
+        #   SOMEVAR[1] = 10
+        #   A,B = (10, 20)
+        pass
+
+    def on_definition(self, node: Node, value: str, depth: int, breadth: int, type: str = "block"):
+        name_node = node.child_by_field_name("name")
+        name = extract(name_node, self.code) if name_node else None
+        self.scope = self.scope.derive(
+            type=type, range=(node.start_byte, node.end_byte), name=name)
+        self.mode = "def"
+
+        def on_exit(_, self=self):
+            self.scope = self.scope.parent
+        return on_exit
+
+    # --
+    # ### References
+    def on_identifier(self, node: Node, value: str, depth: int, breadth: int):
+        if value not in self.scope.slots:
+            if self.mode == "ref":
+                self.scope.refs[value] = self.mode
+            else:
+                self.scope.slots[value] = self.mode
+
+    def on_return_statement(self, node: Node, value: str, depth: int, breadth: int):
+        return self.on_statement(node, value, depth, breadth)
 
     def on_expression_statement(self, node: Node, value: str, depth: int, breadth: int):
+        if self.scope.type != "module":
+            return self.on_statement(node, value, depth, breadth)
+        else:
+            self.scope = self.scope.derive(
+                type="expression", range=(node.start_byte, node.end_byte))
+            self.mode = "def"
+            self.on_statement(node, value, depth, breadth)
+
+            def on_exit(_, self=self):
+                self.scope = self.scope.parent
+            return on_exit
+
+    def on_statement(self, node: Node, value: str, depth: int, breadth: int):
         mode = self.mode
         self.mode = "ref"
 
@@ -77,29 +125,12 @@ class DataflowProcessor(Processor):
             self.mode = mode
         return on_exit
 
-    def on_function_definition(self, node: Node, value: str, depth: int, breadth: int):
-        self.scope = self.scope.derive()
-        self.mode = "def"
-
-        def on_exit(_, self=self):
-            self.scope = self.scope.parent
-        return on_exit
-
-    def on_identifier(self, node: Node, value: str, depth: int, breadth: int):
-        if value not in self.scope.slots:
-            self.scope.slots[value] = self.mode
-            if self.mode == "def":
-                self.defs.add(value)
-                if value in self.refs:
-                    self.refs.remove(value)
-            elif self.mode == "ref" and not self.scope.defines(value):
-                self.refs.add(value)
-
     def on_node(self, node: str, value: str, depth: int, breadth: int):
         pass
 
 
-print(parser.sexp(EXAMPLES["REFERENCES"]))
-DataflowProcessor(parser)(EXAMPLES["REFERENCES"])
+example = EXAMPLES["REFERENCES"]
+print(parser.sexp(example))
+DataflowProcessor(parser)(example)
 
 # EOF
