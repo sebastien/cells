@@ -3,10 +3,12 @@ import argparse
 from .commands.fmt import Fmt
 from .commands.run import Run
 from .commands.doc import Doc
-from typing import List
+from .commands._import import Import
+
+COMMANDS = [Run, Fmt, Doc, Import]
 
 
-def run(args: List[str] = sys.argv[1:]):
+def run(args: list[str] = sys.argv[1:]):
     """Runs the given command, as passed from the command line"""
     # FROM: https://stackoverflow.com/questions/10448200/how-to-parse-multiple-nested-sub-commands-using-python-argparse
     if not args:
@@ -15,7 +17,7 @@ def run(args: List[str] = sys.argv[1:]):
     subparsers = parser.add_subparsers(
         help="Available subcommands", dest='subcommand')
     # We register the subcommands
-    cmds = dict((_.NAME, _()) for _ in [Run, Fmt, Doc])
+    cmds = dict((_.NAME, _()) for _ in COMMANDS)
     for _ in cmds.values():
         _.define(subparsers.add_parser(_.NAME, help=_.HELP))
     parsed = None

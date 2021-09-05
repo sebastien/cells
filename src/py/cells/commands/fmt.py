@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from . import Command
 from ..parser import parse
+from ..model import Document
 
 
 # --
@@ -19,21 +20,24 @@ class Fmt(Command):
 
     def define(self, parser):
         super().define(parser)
-        parser.add_argument("-t", "--to", dest="format", action="store", default="cells",
+        parser.add_argument("-t", "--to", dest="format", action="store", default="cd",
                             help=f"Output format: {', '.join(self.FORMATS)}")
         parser.add_argument("-o", "--output", dest="output", action="store", default="-",
                             help=f"Output file")
         parser.add_argument("files", metavar="FILE", type=str, nargs='*',
                             help='Input files to format')
 
+    def parse(self, inputs: list[Path]) -> Document:
+        return parse(*inputs)
+
     def run(self, args):
-        doc = parse(*(Path(_) for _ in args.files))
         if not args.format in self.FORMATS:
-            return self.err(f"'-t' option should be one of ${', '.join(self.FORMATS)}, got: {args.format}")
+            return self.err(f"'-t' option should be one of {', '.join(self.FORMATS)}, got: {args.format}")
         if args.output == "-":
             out = sys.stdout
         else:
             out = open(args.output, "w")
+        doc = self.parse([Path(_) for _ in args.files])
         if args.format == "md":
             for chunk in doc.iterMarkdown():
                 out.write(chunk)
