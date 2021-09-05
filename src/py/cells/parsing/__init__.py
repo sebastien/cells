@@ -1,4 +1,4 @@
-from tree_sitter import Language, Node, Tree, Parser as TSParser
+from tree_sitter import Language, Node, Tree, Parser as TSBaseParser
 from typing import Optional, Callable, Any
 from pathlib import Path
 
@@ -34,10 +34,10 @@ def extract(node: Node, text: str) -> str:
 # --
 # ## Language Parser
 
-class Parser:
+class TSParser:
     def __init__(self, lang: str):
         self.lang = lang
-        self.parser = TSParser()
+        self.parser = TSBaseParser()
         self.tsLang = Language(LIBRARY_PATH, lang)
         self.parser.set_language(self.tsLang)
 
@@ -64,7 +64,7 @@ def node_key(node: Node) -> str:
     return f"{node.type}:{node.start_byte}:{node.end_byte}"
 
 
-class Processor:
+class TSProcessor:
     """Base class to write TreeSitter processors."""
 
     ALIASES = {
@@ -76,13 +76,16 @@ class Processor:
         "^": "chevron",
     }
 
-    def __init__(self, parser: Parser):
+    def __init__(self, parser: TSParser):
         self.parser = parser
         self.code = ""
         self.init()
 
     def init(self):
         pass
+
+    def extract(self, node: Node) -> str:
+        return extract(node, self.code)
 
     def on_node(self, node: Node, value: str, depth: int, breadth: int):
         print(f"node:{node.type} {depth}+{breadth}: {value}")
@@ -149,8 +152,7 @@ class Processor:
                     if node_key(cursor.node) not in visited:
                         break
                 if node_key(cursor.node) in visited:
-                    self.on_end()
-                    break
+                    return self.on_end()
 
 
 class Symbol:
@@ -179,6 +181,15 @@ class Symbol:
     def __repr__(self):
         return f"(symbol {self.name} {self.range} {self.inputs})"
 
+    def asDict(self) -> dict[str, Any]:
+        return dict(
+            name=self.name,
+            parent=self.parent,
+            range=self.range,
+            inputs=[_ for _ in self.inputs],
+            scope=self.scope.asDict() if self.scope else None,
+        )
+
 
 class Scope:
     def __init__(self, parent: Optional['Scope'] = None, type: Optional[str] = None):
@@ -192,12 +203,12 @@ class Scope:
         if parent:
             parent.children.append(self)
 
-    @property
+    @ property
     def qualname(self) -> Optional[str]:
         parent_name = self.parent.qualname if self.parent else None
         return None if not self.name else f"{parent_name}.{self.name}" if parent_name else self.name
 
-    @property
+    @ property
     def defs(self):
         return [_ in self.slots]
 
@@ -234,8 +245,5 @@ class Scope:
 # --
 # ## Global Parsers
 
-PythonParser = Parser("python")
-JavascriptParser = Parser("javascript")
-GoParser = Parser("go")
 
 # EOF
