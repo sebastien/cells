@@ -1,14 +1,21 @@
 from retro import Request, Response, Component, on, run
-from retro.contrib.api import acors
+from retro.contrib.api import setCORSHeaders, acors
+from ..parsing.python import Python
+import json
 
 
 class BlockAPI(Component):
 
-    @on(GET_POST="document")
+    @on(OPTIONS_POST="document")
+    @acors()
     async def document(self, request: Request) -> Response:
         data = await request.data()
         print("DATA", data)
-        return request.returns(True)
+        if data:
+            payload = json.loads(str(data, "utf8"))
+            return request.returns(payload)
+        else:
+            return request.returns(True)
 
 
 if __name__ == "__main__":
