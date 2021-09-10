@@ -90,17 +90,23 @@ class TSProcessor:
     def on_node(self, node: Node, value: str, depth: int, breadth: int):
         print(f"node:{node.type} {depth}+{breadth}: {value}")
 
+    def on_start(self):
+        pass
+
     def on_end(self):
         pass
 
     def __call__(self, code: str):
         self.code = code
-        tree = self.parser.parser.parse(bytes(code, "utf8"))
+        tree = self.parser(code)
         cursor = tree.walk()
         depth = 0
         breadth = 0
         visited = set()
         on_exit = {}
+        # NOTE: Not sure if we should call init there
+        self.init()
+        self.on_start()
         # This implements a depth-first traversal of the tree
         while True:
             node = cursor.node

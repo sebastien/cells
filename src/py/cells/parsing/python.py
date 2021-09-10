@@ -18,7 +18,7 @@ class TSPythonProcessor(TSProcessor):
 
         def walk(scope: Scope, depth: int):
             if depth == 1 or scope.qualname:
-                name = scope.qualname or f"#{len(symbols)}"
+                name = scope.qualname or f"_S{len(symbols)}"
                 symbols[name] = Symbol(name=name, scope=scope)
 
         self.root.walk(walk)
