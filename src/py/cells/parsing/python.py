@@ -18,8 +18,9 @@ class TSPythonProcessor(TSProcessor):
 
         def walk(scope: Scope, depth: int):
             if depth == 1 or scope.qualname:
-                name = scope.qualname or f"_S{len(symbols)}"
-                symbols[name] = Symbol(name=name, scope=scope)
+                if scope.qualname or scope.children:
+                    name = scope.qualname or f"_S{len(symbols)}"
+                    symbols[name] = Symbol(name=name, scope=scope)
 
         self.root.walk(walk)
         return [_ for _ in symbols.values()]
@@ -39,7 +40,14 @@ class TSPythonProcessor(TSProcessor):
         #   STATIC = 1
         #   SOMEVAR[1] = 10
         #   A,B = (10, 20)
-        pass
+        name_node = node.child_by_field_name("left")
+        name = self.extract(name_node) if name_node else None
+        self.scope = self.scope.derive(
+            type=type, range=(node.start_byte, node.end_byte), name=name)
+
+        def on_exit(_, self=self):
+            self.scope = self.scope.parent
+        return on_exit
 
     def on_definition(self, node: Node, value: str, depth: int, breadth: int, type: str = "block"):
         name_node = node.child_by_field_name("name")
@@ -64,18 +72,20 @@ class TSPythonProcessor(TSProcessor):
     def on_return_statement(self, node: Node, value: str, depth: int, breadth: int):
         return self.on_statement(node, value, depth, breadth)
 
-    def on_expression_statement(self, node: Node, value: str, depth: int, breadth: int):
-        if self.scope.type != "module":
-            return self.on_statement(node, value, depth, breadth)
-        else:
-            self.scope = self.scope.derive(
-                type="expression", range=(node.start_byte, node.end_byte))
-            self.mode = "def"
-            self.on_statement(node, value, depth, breadth)
+    # NOTE: Assignments are contained in expressions, so maybe not ideal
+    # def on_expression_statement(self, node: Node, value: str, depth: int, breadth: int):
+    #     print("ON:EXPR", node.sexp())
+    #     if self.scope.type != "module":
+    #         return self.on_statement(node, value, depth, breadth)
+    #     else:
+    #         self.scope = self.scope.derive(
+    #             type="expression", range=(node.start_byte, node.end_byte))
+    #         self.mode = "def"
+    #         self.on_statement(node, value, depth, breadth)
 
-            def on_exit(_, self=self):
-                self.scope = self.scope.parent
-            return on_exit
+    #         def on_exit(_, self=self):
+    #             self.scope = self.scope.parent
+    #         return on_exit
 
     def on_statement(self, node: Node, value: str, depth: int, breadth: int):
         mode = self.mode

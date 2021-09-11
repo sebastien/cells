@@ -45,7 +45,7 @@ class DynamicEnvironment(OrderedDict):
         return super().__getitem__(k)
 
     def __setitem__(self, k: str, v: Any) -> None:
-        print("SETTING.K", k)
+        print("SETTING.K", k, v)
         return super().__setitem__(k, v)
 
     def __setattr__(self, k: str, v: Any) -> None:
@@ -65,24 +65,29 @@ class PythonKernel(BaseKernel):
         # mixed tabs and spaces
         slot_lines = [untab(f"\t{line}")
                       for line in (s.source or "").split("\n")]
-        ref = f"S{sig([session])}_{slot}"
-        slot_lines.insert(
-            0, f"def {ref}({', '.join(s.inputs)}):")
-        while not slot_lines[-1].strip():
-            slot_lines.pop()
-        if len(slot_lines) == 1:
-            slot_lines.append(untab("\tpass"))
-        # NOTE: This means that the code must end with an expression
-        indent, result = splitIndent(slot_lines.pop())
-        slot_lines.append(f"{indent}{result}")
-        slot_code = "\n".join(slot_lines)
+        # FIXME: I'm not sure why we need that
+        # ref = f"S{sig([session])}_{slot}"
+        # slot_lines.insert(
+        #     0, f"def {ref}({', '.join(s.inputs)}):")
+        # while not slot_lines[-1].strip():
+        #     slot_lines.pop()
+        # if len(slot_lines) == 1:
+        #     slot_lines.append(untab("\tpass"))
+        # # NOTE: This means that the code must end with an expression
+        # indent, result = splitIndent(slot_lines.pop())
+        # slot_lines.append(f"{indent}{result}")
+        # slot_code = "\n".join(slot_lines)
+        slot_code = s.source
+
         # We evaluate the function in a completely standalone environment
         scope_locals: OrderedDict[str, Any] = OrderedDict()
         scope_globals: OrderedDict[str, Any] = OrderedDict()
         exec(slot_code, scope_globals, scope_locals)
         # NOTE: We should check that the scope only has one entry
-        slot_def = scope_locals[ref]
-        # We update the slot
+        slot_def = None
+        for v in scope_locals.values():
+            slot_def = v
+        # We update the slot definition
         s.definition = slot_def
         # FIXME: This is probably not right, the source
         # should probably be the cell/slot's original source, not
@@ -94,6 +99,7 @@ class PythonKernel(BaseKernel):
         s = self.getSlot(session, slot)
         args = [self.get(session, _) for _ in s.inputs or ()]
         scope_locals: OrderedDict[str, Any] = DynamicEnvironment()
+        assert s.definition, f"Slot '{session}.{slot}' has no definition: {s}"
         scope_globals: OrderedDict[str, Any] = DynamicEnvironment(
             _d=s.definition,
             _a=args,
