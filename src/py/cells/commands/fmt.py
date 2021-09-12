@@ -42,7 +42,7 @@ class Fmt(Command):
             for chunk in doc.iterMarkdown():
                 out.write(chunk)
         elif args.format == "json":
-            json.dump(doc.toPrimitive(), out)
+            json.dump(doc.asDict(), out)
         else:
             for chunk in doc.iterSource():
                 out.write(chunk)

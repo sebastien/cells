@@ -1,15 +1,14 @@
 import hashlib
-from typing import List
 
 
-def sig(content: List[str]) -> str:
+def sig(content: list[str]) -> str:
     h = hashlib.sha3_256()
     for _ in content:
         h.update(bytes(_, "utf8"))
     return h.hexdigest()
 
 
-def equal_lines(a: List[str], b: List[str]) -> bool:
+def equal_lines(a: list[str], b: list[str]) -> bool:
     """Tells if both list of strings are identical"""
     if len(a) != len(b):
         return False

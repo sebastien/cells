@@ -1,11 +1,13 @@
-from typing import Iterable, Any, Optional, List, Dict
+from typing import Iterable, Optional, Union, NamedTuple
 from .utils import sig, equal_lines
 from .dag import DAG
+from dataclasses import dataclass
+from pathlib import Path
 import re
 
 RE_EMPTY = re.compile("^\s*$")
 
-# TODO: Striplies should be an option in the iteration of sources. Should probably
+# TODO: Striplines should be an option in the iteration of sources. Should probably
 # also be moved to `utils`.
 
 
@@ -21,6 +23,35 @@ def striplines(lines: Iterable[str]) -> Iterable[str]:
     return lines[i:j+1]
 
 
+class Content:
+
+    def __init__(self, source: str, start: int = 0, end: Optional[int] = None):
+        self._source: str = source
+        self.start: int = start
+        self.end: int = len(source) if end is None else end
+        self._lines: list[str] = source[start:end].split("\n")
+        self.hasChanged: bool = False
+
+    @property
+    def range(self) -> tuple[int, int]:
+        return (self.start, self.end)
+
+    @property
+    def lines(self) -> list[str]:
+        return self._lines
+
+    def append(self, line: str):
+        self._lines.append(line)
+        self.hasChanged = True
+        return self
+
+    def __equals__(self, value):
+        return equal_lines(self.lines, value.lines) if isinstance(value, Content) else False
+
+    def __str__(self) -> str:
+        return "\n".join(self.lines)
+
+
 class Cell:
     """Cells wrap an evaluable representation. The evaluation of the representation
     can be done in a language-specific kernel and a corresponding context, which
@@ -28,23 +59,24 @@ class Cell:
     """
     IDS: int = 0
 
-    def __init__(self, name: Optional[str] = None, type: Optional[str] = None, inputs: Optional[List[str]] = None, modifiers: Optional[List[str]] = None, content: str = ""):
+    def __init__(self, name: Optional[str] = None, type: Optional[str] = None, inputs: Optional[list[str]] = None, modifiers: Optional[list[str]] = None, content: Union[str, tuple[str, int, int]] = ""):
         self.id = str(Cell.IDS)
         Cell.IDS += 1
         self.name: Optional[str] = name
         self.type = type
-        self.inputs: List[str] = [_ for _ in inputs or ()]
-        self.modifiers: List[str] = [_ for _ in modifiers or ()]
-        self._content: List[str] = content.split("\n")
+        self.inputs: list[str] = [_ for _ in inputs or ()]
+        self.modifiers: list[str] = [_ for _ in modifiers or ()]
+        self._content: Content = Content(content) if isinstance(
+            content, str) else Content(content[0], content[1], content[2])
 
     def equals(self, cell: 'Cell') -> bool:
         """Tells if this cell equals the other cell. This only checks
         type, inputs and content"""
-        return self.type == cell.type and equal_lines(self.inputs, cell.inputs) and equal_lines(self._content, cell._content)
+        return self.type == cell.type and equal_lines(self.inputs, cell.inputs) and self._content == cell._content
 
     @property
     def isEmpty(self) -> bool:
-        for _ in self._content:
+        for _ in self._content.lines:
             if _ and not RE_EMPTY.match(_):
                 return False
         return True
@@ -59,12 +91,12 @@ class Cell:
 
     @property
     def contentSignature(self) -> str:
-        return sig(self._content)
+        return sig(self._content.lines)
 
     @property
     def source(self) -> str:
         """Returns the source code for the cell as a string"""
-        lines = self._content
+        lines = self._content.lines
         i = len(lines) - 1
         while i >= 0 and lines[i].strip() == "\n":
             i -= 1
@@ -91,16 +123,16 @@ class Cell:
     def iterSource(self) -> Iterable[str]:
         yield self.header
         yield "\n"
-        for _ in striplines(self._content):
+        for _ in striplines(self._content.lines):
             yield _
 
     def iterMarkdown(self) -> Iterable[str]:
         if self.type in ("md", None):
-            for _ in self._content:
+            for _ in self._content.lines:
                 yield _
         else:
             yield f"\n```{self.type}{' ' + self.header.strip() if self.name or self.inputs else ''}\n"
-            for _ in (striplines(self._content)):
+            for _ in (striplines(self._content.lines)):
                 yield _
             yield "```\n"
 
@@ -110,13 +142,14 @@ class Cell:
     def toMarkdown(self) -> str:
         return "".join(_ for _ in self.iterMarkdown())
 
-    def toPrimitive(self):
+    def asDict(self):
         return dict((k, v) for k, v in {
             "id": self.id,
             "name": self.name,
             "type": self.type,
             "inputs": self.inputs,
-            "content": self._content,
+            "range": self._content.range,
+            "lines": self._content.lines,
         }.items() if v is not None and v != [])
 
 
@@ -124,8 +157,8 @@ class Document:
     """A block contains a list of cells and is able to perform operations on them."""
 
     def __init__(self):
-        self.cells: List[Cell] = []
-        self._symbols: Dict[str, Cell] = {}
+        self.cells: list[Cell] = []
+        self._symbols: dict[str, Cell] = {}
         self.dag: DAG[Cell] = DAG()
 
     def prepare(self):
@@ -162,8 +195,8 @@ class Document:
     def toSource(self) -> str:
         return "".join(_ for _ in self.iterSource())
 
-    def toPrimitive(self):
-        return [_.toPrimitive() for _ in self.cells]
+    def asDict(self):
+        return [_.asDict() for _ in self.cells]
 
     def __iter__(self) -> Iterable[Cell]:
         yield from self.iterCells()

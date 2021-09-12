@@ -18,7 +18,7 @@ class DAG(Generic[T]):
         self.inputs = {}
         return self
 
-    def toPrimitive(self):
+    def asDict(self):
         return {
             "nodes": self.nodes,
             "edges": self.outputs,

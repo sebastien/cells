@@ -1,5 +1,6 @@
 from . import TSParser, TSProcessor, Scope, Symbol
 from tree_sitter import Node
+from ..model import Cell
 
 
 class TSPythonProcessor(TSProcessor):
@@ -115,5 +116,29 @@ class Python:
     def Symbols(cls, code: str) -> list[Symbol]:
         """Returns the list of symbols defined in the given code"""
         return cls.PROCESSOR(code)
+
+    @classmethod
+    def Cells(cls, code: str) -> list[Cell]:
+        """Returns the list of cells identified as paret of the given code."""
+        symbols: list[tuple[Symbol, int, int]] = []
+        for symbol in cls.Symbols(code):
+            s, e = symbol.range
+            # We need to preserve the indentation
+            while code[s-1] in " \t" and s > 0:
+                s -= 1
+            if symbols and (last := symbols[-1]) and last[2] > s:
+                symbols[-1] = (last[0], last[1], s - 1)
+            symbols.append((symbol, s, e))
+        res = []
+        for symbol, start, end in symbols:
+            # TODO: We should capture the overall indentation of the block
+            res.append(Cell(
+                name=symbol.name,
+                type="python",
+                inputs=[_ for _ in symbol.inputs],
+                content=(code, start, end)
+            ))
+        return res
+
 
 # EOF
