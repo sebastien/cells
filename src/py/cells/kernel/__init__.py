@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any,  cast
+from typing import Optional, Any,  cast
 from enum import Enum
 import time
 import os
@@ -10,7 +10,7 @@ import importlib
 @dataclass
 class Slot:
     type: Optional[str] = None
-    inputs: List[str] = field(default_factory=list)
+    inputs: list[str] = field(default_factory=list)
     source: Optional[str] = None
     value: Optional[Any] = None
     isDirty: bool = True
@@ -20,7 +20,7 @@ class Slot:
 @dataclass
 class Session:
     timestamp: float
-    slots: Dict[str, Slot] = field(default_factory=dict)
+    slots: dict[str, Slot] = field(default_factory=dict)
 
 
 class RenderFormat(Enum):
@@ -36,7 +36,7 @@ class RenderFormat(Enum):
 class IKernel:
 
     # TODO: Must define the BaseKernel interface
-    def set(self, session: str, slot: str, inputs: List[str], source: str, type: str):
+    def set(self, session: str, slot: str, inputs: list[str], source: str, type: str):
         """Sets the given slot to use the given inputs with the given source and type"""
         raise NotImplemented
 
@@ -44,7 +44,7 @@ class IKernel:
         """Returns the value of the given slot."""
         raise NotImplemented
 
-    def invalidate(self, session: str, slots: List[str]):
+    def invalidate(self, session: str, slots: list[str]):
         """Invalidates the given slots, indicating that their value is out of date."""
         raise NotImplemented
 
@@ -56,7 +56,7 @@ class IKernel:
         """Returns the JSON representation of the given slot."""
         raise NotImplemented
 
-    def update(self, session: str, cells: List[str]) -> str:
+    def update(self, session: str, cells: list[str]) -> str:
         """Triggers an update of the given cells, in the defined order."""
         raise NotImplemented
 
@@ -69,9 +69,9 @@ class BaseKernel(IKernel):
 
     def __init__(self):
         super().__init__()
-        self.sessions: Dict[str, Session] = {}
+        self.sessions: dict[str, Session] = {}
 
-    def set(self, session: str, slot: str, inputs: List[str], source: str, type: str) -> bool:
+    def set(self, session: str, slot: str, inputs: list[str], source: str, type: str) -> bool:
         # We update the slot
         s = self.getSlot(session, slot)
         # TODO: We could check if the inputs have changes
@@ -90,9 +90,9 @@ class BaseKernel(IKernel):
             # NOTE: This will trigger a recursive loop if it's not a DAG
             s.value = self.evalSlot(session, slot)
             s.isDirty = False
-        return s.value
+        return s
 
-    def invalidate(self, session: str, slots: List[str]) -> bool:
+    def invalidate(self, session: str, slots: list[str]) -> bool:
         for slot in slots:
             self.getSlot(session, slot).isDirty = True
         return True
@@ -108,6 +108,7 @@ class BaseKernel(IKernel):
     def getSlot(self, session: str, slot: str) -> Slot:
         """Returns the slot with the given name in the given session, creating it if necessary."""
         s = self.getSession(session)
+        assert self.sessions[session] is s
         return s.slots[slot] if slot in s.slots else s.slots.setdefault(slot, Slot())
 
     def defineSlot(self, session: str, slot: str):

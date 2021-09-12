@@ -1,5 +1,5 @@
 from typing import Dict, OrderedDict, Any, Tuple
-from ..kernel import BaseKernel
+from ..kernel import BaseKernel, Slot
 from ..utils import sig
 import re
 
@@ -22,34 +22,29 @@ def untab(line: str) -> str:
     return f"{indent}{suffix}"
 
 
+# NOTE: Not sure this is really going to be necessary, but leaving it for
+# now.
 class DynamicEnvironment(OrderedDict):
 
     def get(self, key):
-        print("XXX", key)
         return super().get(key)
 
     def __keytransform__(self, key):
-        print("TRAN", key)
         return key
 
     def __contains__(self, key: str) -> bool:
-        print("HAS?", key)
         return super().__contains__(key)
 
     def __getitem__(self, k: str) -> Any:
-        print("GETTING", k)
         return super().__getitem__(k)
 
     def __getattr__(self, k: str) -> Any:
-        print("GETTING.A", k)
         return super().__getitem__(k)
 
     def __setitem__(self, k: str, v: Any) -> None:
-        print("SETTING.K", k, v)
         return super().__setitem__(k, v)
 
     def __setattr__(self, k: str, v: Any) -> None:
-        print("SETTING.A", k)
         return super().__setitem__(k, v)
 
 
@@ -59,12 +54,15 @@ class DynamicEnvironment(OrderedDict):
 class PythonKernel(BaseKernel):
 
     def defineSlot(self, session: str, slot: str):
-        s = self.getSlot(session, slot)
+        s: Slot = self.getSlot(session, slot)
         assert s.type == "python", f"Type not supported: {s.type}"
+        # NOTE: Now that we kind of assume that cells are evaluable expressions,
+        # this should work.
+        # --
         # TODO: We should make sure we can retab the input, as otherwise Python will complain about
         # mixed tabs and spaces
-        slot_lines = [untab(f"\t{line}")
-                      for line in (s.source or "").split("\n")]
+        # slot_lines = [untab(f"\t{line}")
+        #               for line in (s.source or "").split("\n")]
         # FIXME: I'm not sure why we need that
         # ref = f"S{sig([session])}_{slot}"
         # slot_lines.insert(
@@ -79,34 +77,32 @@ class PythonKernel(BaseKernel):
         # slot_code = "\n".join(slot_lines)
         slot_code = s.source
 
-        # We evaluate the function in a completely standalone environment
-        scope_locals: OrderedDict[str, Any] = OrderedDict()
-        scope_globals: OrderedDict[str, Any] = OrderedDict()
-        exec(slot_code, scope_globals, scope_locals)
-        # NOTE: We should check that the scope only has one entry
-        slot_def = None
-        for v in scope_locals.values():
-            slot_def = v
+        # # We evaluate the function in a completely standalone environment
+        # scope_locals: OrderedDict[str, Any] = OrderedDict()
+        # scope_globals: OrderedDict[str, Any] = OrderedDict()
+        # exec(slot_code, scope_globals, scope_locals)
+        # # NOTE: We should check that the scope only has one entry
+        # slot_def = None
+        # for v in scope_locals.values():
+        #     slot_def = v
         # We update the slot definition
-        s.definition = slot_def
+        # s.definition = slot_def
         # FIXME: This is probably not right, the source
         # should probably be the cell/slot's original source, not
         # the one we synthesized.
         s.source = slot_code
         return s
 
+    # TODO: The caching should be done at the generic kernel level
     def evalSlot(self, session: str, slot: str):
-        s = self.getSlot(session, slot)
-        args = [self.get(session, _) for _ in s.inputs or ()]
+        """Returns the value of the given slot for the given session."""
+        s: Slot = self.getSlot(session, slot)
         scope_locals: OrderedDict[str, Any] = DynamicEnvironment()
-        assert s.definition, f"Slot '{session}.{slot}' has no definition: {s}"
-        scope_globals: OrderedDict[str, Any] = DynamicEnvironment(
-            _d=s.definition,
-            _a=args,
-        )
-        exec("_d(*_a)", scope_globals, scope_locals)
-        print("SLOT", slot, "DEFINES", [
-              _ for _ in scope_locals], "uses", [_ for _ in scope_globals])
-        return s.definition(*args) if s.definition else None
+        scope_globals: OrderedDict[str, Any] = DynamicEnvironment()
+        for input_name in (s.inputs or ()):
+            input_slot = self.get(session, input_name)
+            scope_globals[input_name] = True
+        exec(s.source, scope_locals, scope_globals)
+        return scope_globals[slot]
 
 # EOF
