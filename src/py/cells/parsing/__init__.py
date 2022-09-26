@@ -17,22 +17,22 @@ from pathlib import Path
 
 # NOTE: This only works when building from source
 BASE_PATH = Path(__file__).parent.parent.parent.parent.parent
-DEPS_PATH = BASE_PATH.joinpath("deps")
+DEPS_PATH = BASE_PATH.joinpath(".deps/src")
 BUILD_PATH = BASE_PATH.joinpath("build")
 LIBRARY_PATH = BUILD_PATH.joinpath("cells-treesitter.so")
 LANGUAGES = ["python", "javascript", "go"]
 Language.build_library(
-    str(LIBRARY_PATH),
-    [f"{DEPS_PATH}/tree-sitter-{_}" for _ in LANGUAGES]
+    str(LIBRARY_PATH), [f"{DEPS_PATH}/tree-sitter-{_}" for _ in LANGUAGES]
 )
 
 
 def extract(node: Node, text: str) -> str:
-    return text[node.start_byte:node.end_byte]
+    return text[node.start_byte : node.end_byte]
 
 
 # --
 # ## Language Parser
+
 
 class TSParser:
     def __init__(self, lang: str):
@@ -48,11 +48,14 @@ class TSParser:
         return self.parse(code).sexp()
 
     def query(self, query: str, code: str) -> dict[str, str]:
-        return dict((k, extract(v, code)) for v, k in self.tsLang.query(
-            query).captures(self.parse(code)))
+        return dict(
+            (k, extract(v, code))
+            for v, k in self.tsLang.query(query).captures(self.parse(code))
+        )
 
     def __call__(self, value: str) -> Tree:
         return self.parser.parse(bytes(value, "utf8"))
+
 
 # --
 # ## Tree Processor
@@ -112,10 +115,12 @@ class TSProcessor:
             node = cursor.node
             key = node_key(node)
             method_name = f"on_{node.type}"
-            processor = getattr(self, method_name) if hasattr(
-                self, method_name) else self.on_node
-            exit_functor = processor(
-                node, extract(node, code), depth, breadth)
+            processor = (
+                getattr(self, method_name)
+                if hasattr(self, method_name)
+                else self.on_node
+            )
+            exit_functor = processor(node, extract(node, code), depth, breadth)
             # We use functors as exit functions
             if exit_functor:
                 if node.child_count > 0:
@@ -162,7 +167,9 @@ class TSProcessor:
 
 
 class Symbol:
-    def __init__(self, name: str, parent: Optional[str] = None, scope: Optional['Scope'] = None):
+    def __init__(
+        self, name: str, parent: Optional[str] = None, scope: Optional["Scope"] = None
+    ):
         self.name = name
         self.parent = parent
         self.scope: Optional[Scope] = scope
@@ -180,6 +187,7 @@ class Symbol:
             for ref, _ in scope.refs.items():
                 if not scope.isDefined(ref):
                     refs.add(ref)
+
         if self.scope:
             self.scope.walk(walk)
         return refs
@@ -198,7 +206,7 @@ class Symbol:
 
 
 class Scope:
-    def __init__(self, parent: Optional['Scope'] = None, type: Optional[str] = None):
+    def __init__(self, parent: Optional["Scope"] = None, type: Optional[str] = None):
         self.name: Optional[str] = None
         self.slots: dict[str, str] = {}
         self.refs: dict[str, str] = {}
@@ -209,19 +217,32 @@ class Scope:
         if parent:
             parent.children.append(self)
 
-    @ property
+    @property
     def qualname(self) -> Optional[str]:
         parent_name = self.parent.qualname if self.parent else None
-        return None if not self.name else f"{parent_name}.{self.name}" if parent_name else self.name
+        return (
+            None
+            if not self.name
+            else f"{parent_name}.{self.name}"
+            if parent_name
+            else self.name
+        )
 
-    @ property
+    @property
     def defs(self):
         return [_ in self.slots]
 
     def isDefined(self, name: str) -> bool:
-        return self.slots.get(name) == "def" or bool(self.parent and self.parent.isDefined(name))
+        return self.slots.get(name) == "def" or bool(
+            self.parent and self.parent.isDefined(name)
+        )
 
-    def derive(self, type: Optional[str] = None, range: Optional[tuple[int, int]] = None, name: Optional[str] = None) -> 'Scope':
+    def derive(
+        self,
+        type: Optional[str] = None,
+        range: Optional[tuple[int, int]] = None,
+        name: Optional[str] = None,
+    ) -> "Scope":
         res = Scope(self)
         if name:
             res.name = name
@@ -234,7 +255,7 @@ class Scope:
     def walk(self, functor: Callable[[Node, int], None], depth: int = 0):
         functor(self, depth)
         for _ in self.children:
-            _.walk(functor, depth+1)
+            _.walk(functor, depth + 1)
 
     def asDict(self) -> dict[str, Any]:
         return dict(
@@ -244,7 +265,7 @@ class Scope:
             range=self.range,
             slots=self.slots,
             refs=self.refs,
-            children=[_.asDict() for _ in self.children]
+            children=[_.asDict() for _ in self.children],
         )
 
 

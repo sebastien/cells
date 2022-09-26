@@ -6,27 +6,33 @@ from tree_sitter import Language, Parser
 
 # FROM: https://github.com/tree-sitter/py-tree-sitter
 
+DEPS = ".deps/src/"
+BUILD = "build"
 Language.build_library(
     # Store the library in the `build` directory
-    'build/treesitter.so',
-
+    f"BUILD/treesitter.so",
     # Include one or more languages
     [
-        'deps/tree-sitter-go',
-        'deps/tree-sitter-javascript',
-        'deps/tree-sitter-python'
-    ]
+        f"{DEPS}/tree-sitter-go",
+        f"{DEPS}/tree-sitter-javascript",
+        f"{DEPS}/tree-sitter-python",
+    ],
 )
-GO_LANGUAGE = Language('build/treesitter.so', 'go')
-JS_LANGUAGE = Language('build/treesitter.so', 'javascript')
-PY_LANGUAGE = Language('build/treesitter.so', 'python')
+GO_LANGUAGE = Language("build/treesitter.so", "go")
+JS_LANGUAGE = Language("build/treesitter.so", "javascript")
+PY_LANGUAGE = Language("build/treesitter.so", "python")
 
 parser = Parser()
 parser.set_language(PY_LANGUAGE)
-tree = parser.parse(bytes("""
+tree = parser.parse(
+    bytes(
+        """
 def foo():
     if bar:
         baz()
-""", "utf8"))
+""",
+        "utf8",
+    )
+)
 
 print(tree)
