@@ -54,6 +54,7 @@ class TSParser:
         )
 
     def __call__(self, value: str) -> Tree:
+        print("PARSING", repr(value))
         return self.parser.parse(bytes(value, "utf8"))
 
 

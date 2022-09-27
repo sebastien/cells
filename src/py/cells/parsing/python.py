@@ -4,7 +4,6 @@ from ..model import Cell
 
 
 class TSPythonProcessor(TSProcessor):
-
     def init(self):
         self.root = Scope(type="module")
         self.scope = self.root
@@ -12,6 +11,10 @@ class TSPythonProcessor(TSProcessor):
         self.defs = set()
         self.refs = set()
         self.symbols: dict[str, Symbol] = {}
+
+    def on_start(self):
+        super().on_start()
+        self.symbols = {}
 
     def on_end(self):
 
@@ -44,21 +47,27 @@ class TSPythonProcessor(TSProcessor):
         name_node = node.child_by_field_name("left")
         name = self.extract(name_node) if name_node else None
         self.scope = self.scope.derive(
-            type=type, range=(node.start_byte, node.end_byte), name=name)
+            type=type, range=(node.start_byte, node.end_byte), name=name
+        )
 
         def on_exit(_, self=self):
             self.scope = self.scope.parent
+
         return on_exit
 
-    def on_definition(self, node: Node, value: str, depth: int, breadth: int, type: str = "block"):
+    def on_definition(
+        self, node: Node, value: str, depth: int, breadth: int, type: str = "block"
+    ):
         name_node = node.child_by_field_name("name")
         name = self.extract(name_node) if name_node else None
         self.scope = self.scope.derive(
-            type=type, range=(node.start_byte, node.end_byte), name=name)
+            type=type, range=(node.start_byte, node.end_byte), name=name
+        )
         self.mode = "def"
 
         def on_exit(_, self=self):
             self.scope = self.scope.parent
+
         return on_exit
 
     # --
@@ -94,6 +103,7 @@ class TSPythonProcessor(TSProcessor):
 
         def on_exit(_):
             self.mode = mode
+
         return on_exit
 
     def on_binary_operator(self, node: Node, value: str, depth: int, breadth: int):
@@ -102,6 +112,7 @@ class TSPythonProcessor(TSProcessor):
 
         def on_exit(_):
             self.mode = mode
+
         return on_exit
 
     def on_node(self, node: str, value: str, depth: int, breadth: int):
@@ -124,7 +135,7 @@ class Python:
         for symbol in cls.Symbols(code):
             s, e = symbol.range
             # We need to preserve the indentation
-            while code[s-1] in " \t" and s > 0:
+            while code[s - 1] in " \t" and s > 0:
                 s -= 1
             if symbols and (last := symbols[-1]) and last[2] > s:
                 symbols[-1] = (last[0], last[1], s - 1)
@@ -132,12 +143,14 @@ class Python:
         res = []
         for symbol, start, end in symbols:
             # TODO: We should capture the overall indentation of the block
-            res.append(Cell(
-                name=symbol.name,
-                type="python",
-                inputs=[_ for _ in symbol.inputs],
-                content=(code, start, end)
-            ))
+            res.append(
+                Cell(
+                    name=symbol.name,
+                    type="python",
+                    inputs=[_ for _ in symbol.inputs],
+                    content=(code, start, end),
+                )
+            )
         return res
 
 

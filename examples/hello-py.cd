@@ -1,15 +1,22 @@
+-- lang:py
+
 --
 # Cells in Python
 
 This document/example shows how to work with [Cells](https://github.com/sebastien/cell)
 and create an interacative Python notebook.
+
 --
 A document with cells implemented in [Python](https://python.org).
--- hello:py
-"Hello"
--- who:py
-"World"
+
+--
+hello = "Hello"
+
+--
+who = "World"
+
 --
 The cells can be combined together.
--- :py < hello who
+
+--
 f"{hello}, {who}!"
