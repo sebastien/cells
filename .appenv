@@ -1,4 +1,4 @@
 # SEE: https://github.com/sebastien/appenv
 appenv_declare  cells
-appenv_prepend  PYTHONPATH $APPENV_DIR/src/py
+appenv_prepend  PYTHONPATH $APPENV_DIR/src/py:$APPENV_DIR/.deps/src/retro/src/py:$APPENV_DIR/.deps/src/texto/src/py:$APPENV_DIR/tests
 appenv_prepend  PATH       $APPENV_DIR/bin
