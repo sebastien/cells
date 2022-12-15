@@ -10,6 +10,7 @@ SOURCES_CELLS:=$(shell egrep "(//|#) --" -r src | cut -d: -f1 | sort | uniq)
 PRODUCT_CELLS=$(SOURCES_CELLS:src/%=build/%.json)
 PRODUCT_ALL=$(PRODUCT_CELLS)
 PYTHONPATH+=$(realpath src/py):$(realpath .deps/src/retro/src/py)
+PREFIX=~/.local
 DEPS_ALL=\
 	 .deps/src/retro\
 	 .deps/src/tree-sitter-python\
@@ -20,6 +21,20 @@ DEPS_ALL=\
 
 export PYTHONPATH
 build: $(PRODUCT_ALL)
+
+install:
+	@if [ ! -e  "$(PREFIX)/bin/cell" ]; then
+		ln -sfr bin/cells $(PREFIX)/bin/cells
+		echo "Installed 'cells' at $(PREFIX)/bin/cells"
+	fi
+
+uninstall:
+	@if [ -e  "$(PREFIX)/bin/cell" ]; then
+		unlink "$(PREFIX)/bin/cell"
+		echo "Installed 'cells' at $(PREFIX)/bin/cells"
+	else
+		echo "Cells not installed at: $(PREFIX)/bin/cells"
+	fi
 
 deps: $(DEPS_ALL)
 	#

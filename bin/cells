@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
-from cells.command import run
-run()
+#!/usr/bin/env bash
+BASE_PATH="$(dirname $(dirname $(readlink -f "$0")))"
+PYTHONPATH=$BASE_PATH/src/py:$PYTHONPATH python -m "cells" "$@"
 # EOF
