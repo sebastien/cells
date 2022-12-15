@@ -25,4 +25,6 @@ kernel.set(s, "a", (), "20", "python")
 assert kernel.get(s, "a") == 20
 assert kernel.get(s, "c") == 20 * 20
 
+print(kernel.getJSON(s))
+
 # EOF

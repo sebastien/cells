@@ -96,7 +96,10 @@ class PythonKernel(BaseKernel):
     def defineSlot(self, session: str, slot: Slot) -> Slot:
         assert slot.type == "python", f"Type not supported: {slot.type}"
         self.compiledSlots[slot.name] = slotCode(slot.source or "None", slot.inputs)
-        self.sessionState.setdefault(session, {})
+        s = self.sessions[session]
+        if (k := slot.name) in s.values:
+            del s.values[k]
+            del s.revisions[k]
         return slot
 
     # TODO: The caching should be done at the generic kernel level
@@ -105,8 +108,11 @@ class PythonKernel(BaseKernel):
         assert isinstance(slot, Slot)
         slot_source = self.compiledSlots[slot.name]
         # NOTE: This makes unnecessary copies
-        slot_context = {k: v[1] for k, v in self.sessionState[session].items()}
-        exec(slot_source, slot_context, scope := cast(dict[str, Any], {}))
+        exec(
+            slot_source,
+            self.sessions[session].values,
+            scope := cast(dict[str, Any], {}),
+        )
         res = scope["_"]
         return res
 

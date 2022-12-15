@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Any, cast
+from typing import Optional, Any, Union, cast
 from enum import Enum
 import time
 import os
@@ -14,13 +14,17 @@ class Slot:
     inputs: tuple[str, ...] = ()
     source: Optional[str] = None
     revision: int = 0
-    definition: Any = None
+
+    def asPrimitive(self):
+        return dict(inputs=self.inputs, source=self.source)
 
 
 @dataclass
 class Session:
     timestamp: float
     slots: dict[str, Slot] = field(default_factory=dict)
+    values: dict[str, Any] = field(default_factory=dict)
+    revisions: dict[str, int] = field(default_factory=dict)
 
 
 class RenderFormat(Enum):
@@ -41,6 +45,12 @@ class IKernel:
         """Sets the given slot to use the given inputs with the given source and type"""
         raise NotImplemented
 
+    def slots(self, session: str) -> dict[str, Slot]:
+        raise NotImplementedError
+
+    def values(self, session: str) -> dict[str, Any]:
+        raise NotImplementedError
+
     def get(self, session: str, slot: str) -> Any:
         """Returns the value of the given slot."""
         raise NotImplemented
@@ -53,9 +63,22 @@ class IKernel:
         """Returns the HTML representation of the given slot."""
         raise NotImplemented
 
-    def getJSON(self, session: str, slot: str) -> str:
+    def getJSON(
+        self, session: str, slot: Optional[str] = None
+    ) -> Union[Optional[dict[str, Any]], dict[str, dict[str, Any]]]:
         """Returns the JSON representation of the given slot."""
-        raise NotImplemented
+        slots = self.slots(session)
+        values = self.values(session)
+        if slot:
+            return (
+                slots[slot].asPrimitive() | {"value": values.get(slot)}
+                if slot in slots
+                else None
+            )
+        else:
+            return {
+                k: (slots[k].asPrimitive() | {"value": values.get(k)}) for k in slots
+            }
 
     def update(self, session: str, cells: list[str]) -> str:
         """Triggers an update of the given cells, in the defined order."""
@@ -70,7 +93,16 @@ class BaseKernel(IKernel):
     def __init__(self):
         super().__init__()
         self.sessions: dict[str, Session] = {}
-        self.sessionState: dict[str, dict[str, tuple[int, Any]]] = {}
+
+    def slots(self, session: str) -> Optional[dict[str, Slot]]:
+        return s.slots if (s := self.sessions.get(session)) else None
+
+    def values(self, session: str) -> Optional[dict[str, Any]]:
+        return (
+            {k: s.values.get(k) for k in s.slots}
+            if (s := self.sessions.get(session))
+            else None
+        )
 
     def set(
         self, session: str, slot: str, inputs: tuple[str, ...], source: str, type: str
@@ -88,21 +120,23 @@ class BaseKernel(IKernel):
     def get(self, session: str, slot: str) -> Any:
         if not self.hasSlot(session, slot):
             raise ValueError(f"Undefined slot: '{session}.{slot}'")
-        s = self.getSlot(session, slot)
-        r, v = self.sessionState.get(session, {}).get(slot, (None, None))
-        if r != s.revision:
+        s = self.sessions[session]
+        if s.slots[slot].revision != (sr := s.revisions.get(slot)) or sr is None:
             # NOTE: This will trigger a recursive loop if it's not a DAG
-            w = self.evalSlot(session, s)
-            self.sessionState.setdefault(session, {})[slot] = (s.revision, w)
+            w = self.evalSlot(session, s.slots[slot])
+            s.revisions[slot] = s.slots[slot].revision
+            s.values[slot] = w
             return w
         else:
-            return v
+            return s.values[slot]
 
     def invalidate(self, session: str, slots: list[str]) -> bool:
-        if session in self.sessionState:
-            s = self.sessionState[session]
+        if s := self.sessions.get(session):
             for slot in slots:
-                del s[slot]
+                if slot in s.values:
+                    del s.values[slot]
+                if slot in s.revisions:
+                    del s.revisions[slot]
         return True
 
     def getSession(self, session: str) -> Session:
