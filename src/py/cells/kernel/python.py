@@ -1,4 +1,4 @@
-from typing import Dict, OrderedDict, Any, Tuple
+from typing import Dict, OrderedDict, Any, Tuple, Optional
 from ..kernel import BaseKernel, Slot
 from ..utils import sig
 import re
@@ -10,7 +10,7 @@ def splitIndent(line: str) -> Tuple[str, str]:
     """Splits each line as a (indent,rest) tuple. See `RE_INDENT`."""
     match = RE_INDENT.match(line)
     if not match:
-        return ('', line)
+        return ("", line)
     else:
         return (match.group(1) if match.group(1) else "", match.group(2) or "")
 
@@ -25,6 +25,10 @@ def untab(line: str) -> str:
 # NOTE: Not sure this is really going to be necessary, but leaving it for
 # now.
 class DynamicEnvironment(OrderedDict):
+    def __init__(self, defaults: Optional[dict[str, Any]] = None):
+        super().__init__()
+        for k, v in (defaults or {}).items():
+            self[k] = v
 
     def get(self, key):
         return super().get(key)
@@ -36,7 +40,11 @@ class DynamicEnvironment(OrderedDict):
         return super().__contains__(key)
 
     def __getitem__(self, k: str) -> Any:
-        return super().__getitem__(k)
+        if super().__contains__(k):
+            return super().__getitem__(k)
+        else:
+            print("Does not contain", k)
+            return None
 
     def __getattr__(self, k: str) -> Any:
         return super().__getitem__(k)
@@ -52,10 +60,9 @@ class DynamicEnvironment(OrderedDict):
 
 
 class PythonKernel(BaseKernel):
-
-    def defineSlot(self, session: str, slot: str):
-        s: Slot = self.getSlot(session, slot)
-        assert s.type == "python", f"Type not supported: {s.type}"
+    def defineSlot(self, session: str, slot: Slot):
+        assert slot.type == "python", f"Type not supported: {slot.type}"
+        print("SLOT", slot)
         # NOTE: Now that we kind of assume that cells are evaluable expressions,
         # this should work.
         # --
@@ -75,7 +82,7 @@ class PythonKernel(BaseKernel):
         # indent, result = splitIndent(slot_lines.pop())
         # slot_lines.append(f"{indent}{result}")
         # slot_code = "\n".join(slot_lines)
-        slot_code = s.source
+        slot_code = slot.source
 
         # # We evaluate the function in a completely standalone environment
         # scope_locals: OrderedDict[str, Any] = OrderedDict()
@@ -90,19 +97,23 @@ class PythonKernel(BaseKernel):
         # FIXME: This is probably not right, the source
         # should probably be the cell/slot's original source, not
         # the one we synthesized.
-        s.source = slot_code
-        return s
+        # slot.source = slot_code
+        return slot
 
     # TODO: The caching should be done at the generic kernel level
-    def evalSlot(self, session: str, slot: str):
+    def evalSlot(self, session: str, slot: Slot):
         """Returns the value of the given slot for the given session."""
-        s: Slot = self.getSlot(session, slot)
+        print("SESSION", self.sessions[session])
+        slot_values = {k: v.value for k, v in self.sessions[session].slots.items()}
+        input_values = {_: self.get(session, _) for _ in slot.inputs or ()}
+        print("XXX", slot_values, input_values)
+        print("CODE", slot.source)
         scope_locals: OrderedDict[str, Any] = DynamicEnvironment()
-        scope_globals: OrderedDict[str, Any] = DynamicEnvironment()
-        for input_name in (s.inputs or ()):
-            input_slot = self.get(session, input_name)
-            scope_globals[input_name] = True
-        exec(s.source, scope_locals, scope_globals)
-        return scope_globals[slot]
+        scope_globals: OrderedDict[str, Any] = DynamicEnvironment(
+            slot_values | input_values
+        )
+        exec(slot.source, scope_locals, scope_globals)
+        return scope_globals["pouet"]
+
 
 # EOF

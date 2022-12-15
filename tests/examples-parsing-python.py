@@ -1,10 +1,11 @@
 # -- ASSIGNMENTS
 value = [1, 2, 3, 4]
+
 # -- NESTED_ASSIGNMENT
-
-
 def f():
     value = [1, 2, 3, 4]
+
+
 # -- FUNCTION_DEFINITION
 
 
@@ -26,14 +27,13 @@ def f():
 
 # This is one named scope, g:
 # inputs: f,a,b,do_something_there,one,two
-def g(arg0, arg1, arg=2+a+b):
+def g(arg0, arg1, arg=2 + a + b):
     f(a + b)
     if True:
         do_something_there(one, two)
 
+
 # -- CLASS
-
-
 class A:
     STATIC = 1
 
