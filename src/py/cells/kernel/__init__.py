@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Any,  cast
+from typing import Optional, Any, cast
 from enum import Enum
 import time
 import os
@@ -27,6 +27,7 @@ class RenderFormat(Enum):
     HTML = "html"
     Text = "text"
     JSON = "json"
+
 
 # NOTE: Design decision: the Kernel is "dump" and does not need to take care of the DAG. The
 # client will implement that logic and direct what needs to be changed. This helps simplify the
@@ -66,12 +67,13 @@ class IKernel:
 
 
 class BaseKernel(IKernel):
-
     def __init__(self):
         super().__init__()
         self.sessions: dict[str, Session] = {}
 
-    def set(self, session: str, slot: str, inputs: list[str], source: str, type: str) -> bool:
+    def set(
+        self, session: str, slot: str, inputs: list[str], source: str, type: str
+    ) -> bool:
         # We update the slot
         s = self.getSlot(session, slot)
         # TODO: We could check if the inputs have changes
@@ -79,7 +81,7 @@ class BaseKernel(IKernel):
         s.inputs = [_ for _ in inputs]
         s.source = source
         s.isDirty = True
-        self.defineSlot(session, slot)
+        self.defineSlot(session, s)
         return True
 
     def get(self, session: str, slot: str) -> Slot:
@@ -88,7 +90,7 @@ class BaseKernel(IKernel):
         s = self.getSlot(session, slot)
         if s.isDirty:
             # NOTE: This will trigger a recursive loop if it's not a DAG
-            s.value = self.evalSlot(session, slot)
+            s.value = self.evalSlot(session, s)
             s.isDirty = False
         return s
 
@@ -99,11 +101,16 @@ class BaseKernel(IKernel):
 
     def getSession(self, session: str) -> Session:
         """Returns the session with the given name, creating it if necessary."""
-        return self.sessions[session] if session in self.sessions else self.sessions.setdefault(
-            session, Session(time.time(), {}))
+        return (
+            self.sessions[session]
+            if session in self.sessions
+            else self.sessions.setdefault(session, Session(time.time(), {}))
+        )
 
     def hasSlot(self, session: str, slot: str) -> bool:
-        return slot in self.sessions[session].slots if session in self.sessions else False
+        return (
+            slot in self.sessions[session].slots if session in self.sessions else False
+        )
 
     def getSlot(self, session: str, slot: str) -> Slot:
         """Returns the slot with the given name in the given session, creating it if necessary."""
@@ -111,10 +118,10 @@ class BaseKernel(IKernel):
         assert self.sessions[session] is s
         return s.slots[slot] if slot in s.slots else s.slots.setdefault(slot, Slot())
 
-    def defineSlot(self, session: str, slot: str):
+    def defineSlot(self, session: str, slot: Slot):
         raise NotImplementedError
 
-    def evalSlot(self, session: str, slot: str):
+    def evalSlot(self, session: str, slot: Slot):
         raise NotImplementedError
 
 
@@ -122,7 +129,6 @@ class BaseKernel(IKernel):
 
 
 class JSONRPCAdapter:
-
     def __init__(self, kernel: IKernel):
         self.kernel = kernel
 
@@ -153,8 +159,11 @@ class AIOPipeServer:
 # We introspect the `cells.kernel` module and retrieves a dict of languages
 # to kernel classes.
 
-KERNELS = [_.split(".")[0] for _ in os.listdir(os.path.dirname(
-    os.path.abspath(__file__))) if _.endswith(".py") and not _.startswith("_")]
+KERNELS = [
+    _.split(".")[0]
+    for _ in os.listdir(os.path.dirname(os.path.abspath(__file__)))
+    if _.endswith(".py") and not _.startswith("_")
+]
 
 
 def loadKernels() -> dict[str, IKernel]:
@@ -169,5 +178,6 @@ def loadKernel(name: str) -> Optional[IKernel]:
         if inspect.isclass(value) and issubclass(value, IKernel):
             return cast(IKernel, value)
     return None
+
 
 # EOF

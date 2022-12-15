@@ -1,6 +1,7 @@
 from tree_sitter import Language, Node, Tree, Parser as TSBaseParser
 from typing import Optional, Callable, Any
 from pathlib import Path
+from .model import Symbol, Scope
 
 # --
 # # Kernel Language Parsing
@@ -16,6 +17,7 @@ from pathlib import Path
 # what we are doing here.
 
 # NOTE: This only works when building from source
+# TODO: These should be overidable from env variables
 BASE_PATH = Path(__file__).parent.parent.parent.parent.parent
 DEPS_PATH = BASE_PATH.joinpath(".deps/src")
 BUILD_PATH = BASE_PATH.joinpath("build")
@@ -54,7 +56,6 @@ class TSParser:
         )
 
     def __call__(self, value: str) -> Tree:
-        print("PARSING", repr(value))
         return self.parser.parse(bytes(value, "utf8"))
 
 
@@ -90,6 +91,13 @@ class TSProcessor:
 
     def extract(self, node: Node) -> str:
         return extract(node, self.code)
+
+    def walkScope(
+        self, scope: Scope, functor: Callable[[Node, int], None], depth: int = 0
+    ):
+        functor(scope, depth)
+        for _ in scope.children:
+            self.walkScope(_, functor, depth + 1)
 
     def on_node(self, node: Node, value: str, depth: int, breadth: int):
         print(f"node:{node.type} {depth}+{breadth}: {value}")
@@ -165,109 +173,6 @@ class TSProcessor:
                         break
                 if node_key(cursor.node) in visited:
                     return self.on_end()
-
-
-class Symbol:
-    def __init__(
-        self, name: str, parent: Optional[str] = None, scope: Optional["Scope"] = None
-    ):
-        self.name = name
-        self.parent = parent
-        self.scope: Optional[Scope] = scope
-
-    @property
-    def range(self) -> tuple[int, int]:
-        return self.scope.range if self.scope else (0, 0)
-
-    # FIXME: This is costly so should be cached
-    @property
-    def inputs(self) -> set:
-        refs = set()
-
-        def walk(scope: Scope, depth: int):
-            for ref, _ in scope.refs.items():
-                if not scope.isDefined(ref):
-                    refs.add(ref)
-
-        if self.scope:
-            self.scope.walk(walk)
-        return refs
-
-    def __repr__(self):
-        return f"(symbol {self.name} {self.range} {self.inputs})"
-
-    def asDict(self) -> dict[str, Any]:
-        return dict(
-            name=self.name,
-            parent=self.parent,
-            range=self.range,
-            inputs=[_ for _ in self.inputs],
-            scope=self.scope.asDict() if self.scope else None,
-        )
-
-
-class Scope:
-    def __init__(self, parent: Optional["Scope"] = None, type: Optional[str] = None):
-        self.name: Optional[str] = None
-        self.slots: dict[str, str] = {}
-        self.refs: dict[str, str] = {}
-        self.children: list[Scope] = []
-        self.parent: Optional[Scope] = parent
-        self.range: tuple[int, int] = (0, 0)
-        self.type = type if type else "block"
-        if parent:
-            parent.children.append(self)
-
-    @property
-    def qualname(self) -> Optional[str]:
-        parent_name = self.parent.qualname if self.parent else None
-        return (
-            None
-            if not self.name
-            else f"{parent_name}.{self.name}"
-            if parent_name
-            else self.name
-        )
-
-    @property
-    def defs(self):
-        return [_ in self.slots]
-
-    def isDefined(self, name: str) -> bool:
-        return self.slots.get(name) == "def" or bool(
-            self.parent and self.parent.isDefined(name)
-        )
-
-    def derive(
-        self,
-        type: Optional[str] = None,
-        range: Optional[tuple[int, int]] = None,
-        name: Optional[str] = None,
-    ) -> "Scope":
-        res = Scope(self)
-        if name:
-            res.name = name
-        if type:
-            res.type = type
-        if range:
-            res.range = range
-        return res
-
-    def walk(self, functor: Callable[[Node, int], None], depth: int = 0):
-        functor(self, depth)
-        for _ in self.children:
-            _.walk(functor, depth + 1)
-
-    def asDict(self) -> dict[str, Any]:
-        return dict(
-            type=self.type,
-            name=self.name,
-            qualname=self.qualname,
-            range=self.range,
-            slots=self.slots,
-            refs=self.refs,
-            children=[_.asDict() for _ in self.children],
-        )
 
 
 # --

@@ -5,7 +5,7 @@ from ..model import Cell
 
 class TSPythonProcessor(TSProcessor):
     def init(self):
-        self.root = Scope(type="module")
+        self.root: Scope = Scope(type="module")
         self.scope = self.root
         self.mode = None
         self.defs = set()
@@ -16,17 +16,19 @@ class TSPythonProcessor(TSProcessor):
         super().on_start()
         self.symbols = {}
 
-    def on_end(self):
-
+    def on_end(self) -> list[Symbol]:
         symbols = {}
 
         def walk(scope: Scope, depth: int):
-            if depth == 1 or scope.qualname:
-                if scope.qualname or scope.children:
-                    name = scope.qualname or f"_S{len(symbols)}"
-                    symbols[name] = Symbol(name=name, scope=scope)
+            # Level 1 scopes may not have qualname
+            if (depth == 1 or scope.qualname) and (scope.qualname or scope.children):
+                # So we make suer there is a qualname
+                name = scope.qualname or f"_S{len(symbols)}"
+                # And we register the symbol definition
+                # TODO: We should also output the dependencies as part of the symbol
+                symbols[name] = Symbol(name=name, scope=scope)
 
-        self.root.walk(walk)
+        self.walkScope(self.root, walk)
         return [_ for _ in symbols.values()]
 
     # --
