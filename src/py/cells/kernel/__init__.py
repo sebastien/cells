@@ -9,11 +9,11 @@ import importlib
 
 @dataclass
 class Slot:
+    name: str
     type: Optional[str] = None
-    inputs: list[str] = field(default_factory=list)
+    inputs: tuple[str, ...] = ()
     source: Optional[str] = None
-    value: Optional[Any] = None
-    isDirty: bool = True
+    revision: int = 0
     definition: Any = None
 
 
@@ -70,33 +70,39 @@ class BaseKernel(IKernel):
     def __init__(self):
         super().__init__()
         self.sessions: dict[str, Session] = {}
+        self.sessionState: dict[str, dict[str, tuple[int, Any]]] = {}
 
     def set(
-        self, session: str, slot: str, inputs: list[str], source: str, type: str
+        self, session: str, slot: str, inputs: tuple[str, ...], source: str, type: str
     ) -> bool:
         # We update the slot
         s = self.getSlot(session, slot)
         # TODO: We could check if the inputs have changes
         s.type = type
-        s.inputs = [_ for _ in inputs]
+        s.inputs = inputs
         s.source = source
-        s.isDirty = True
+        s.revision += 1
         self.defineSlot(session, s)
         return True
 
-    def get(self, session: str, slot: str) -> Slot:
+    def get(self, session: str, slot: str) -> Any:
         if not self.hasSlot(session, slot):
             raise ValueError(f"Undefined slot: '{session}.{slot}'")
         s = self.getSlot(session, slot)
-        if s.isDirty:
+        r, v = self.sessionState.get(session, {}).get(slot, (None, None))
+        if r != s.revision:
             # NOTE: This will trigger a recursive loop if it's not a DAG
-            s.value = self.evalSlot(session, s)
-            s.isDirty = False
-        return s
+            w = self.evalSlot(session, s)
+            self.sessionState.setdefault(session, {})[slot] = (s.revision, w)
+            return w
+        else:
+            return v
 
     def invalidate(self, session: str, slots: list[str]) -> bool:
-        for slot in slots:
-            self.getSlot(session, slot).isDirty = True
+        if session in self.sessionState:
+            s = self.sessionState[session]
+            for slot in slots:
+                del s[slot]
         return True
 
     def getSession(self, session: str) -> Session:
@@ -116,7 +122,11 @@ class BaseKernel(IKernel):
         """Returns the slot with the given name in the given session, creating it if necessary."""
         s = self.getSession(session)
         assert self.sessions[session] is s
-        return s.slots[slot] if slot in s.slots else s.slots.setdefault(slot, Slot())
+        return (
+            s.slots[slot]
+            if slot in s.slots
+            else s.slots.setdefault(slot, Slot(name=slot))
+        )
 
     def defineSlot(self, session: str, slot: Slot):
         raise NotImplementedError
